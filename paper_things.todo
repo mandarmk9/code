@@ -1,0 +1,43 @@
+Notes:
+  ☐ The separation between modes seems to not affect the times of the first (and even the second) shell-crossings.
+
+To learn:
+  ☐ What are the different scales in the Universe? BAO, horizon, 'small', etc. with concrete k-values at a given redshift
+  ☐ What scales are typically 'nonlinear'
+  ☐ What is the regime of validity of SPT?
+  ☐ How much does EFT extend this by?
+  ☐ Free parameters in the EFT? How many?
+  ☐ One-loop, two-loop, stochastic, PS, bispectrum results
+
+To write:
+  ☐ "review" of current status of EFT. Its performance and related citations...
+  ☐ Add a note about suppression of the stochastic terms after τ_l expansion (after stochastic contribution in the PS has been calculated)
+  ☐ Connect the EFT introduction to the aim of our work
+
+
+To understand:
+  ✔ Why do Baumann and the fit estimate disagree on c_s^{2} and c_v^{2} @done(2022-06-23 13:53) @project(To understand)
+    ✔ because the fit takes information from all scales? @done(2022-06-22 16:03) @project(To understand / ☐ Why do Baumann and the fit estimate disagree on c_s^{2} and c_v^{2})
+    ✔ the numerator and denominator of the speeds are both extremely small (1e-14); ratio is between 1e-3 and 1. @done(2022-06-22 16:03) @project(To understand / ☐ Why do Baumann and the fit estimate disagree on c_s^{2} and c_v^{2})
+    ✔ c^{2} is not spatially independent! not even asymptotically. @done(2022-06-22 16:03) @project(To understand / ☐ Why do Baumann and the fit estimate disagree on c_s^{2} and c_v^{2})
+    ✔ will the above fact change if we have more modes? @done(2022-06-22 16:03) @project(To understand / ☐ Why do Baumann and the fit estimate disagree on c_s^{2} and c_v^{2})
+  ☐ Why does Baumann behave strangely (Λ-dependence of c_tot^{2} with Gaussian smoothing, top two panels)
+  ☐ What does the renormalisation by Λ → ∞ mean in our case? See App E of Carrasco (2012)
+  ☐ What does the statement -- "where the cross spectra cannot be averaged over the direction of the wavevectors" one page 8 of the paper mean?
+  ☐ Real space density plots:
+    ☐ how to correct the real space density?? something is wrong there
+    ☐ why are the two SPTs out of phase??
+
+To do:
+  ☐ simulations with different phases:
+    ✔ Why are the spectra from EFT_nbody.py and spectra.py different? @done(2022-07-28 13:08) @project(To do / ☐ simulations with different phases)
+    ✔ How does τ change? @done(2022-07-29 17:37) @project(To do / ☐ simulations with different phases)
+    ✔ How does the density field look in Fourier space? @done(2022-07-29 17:37) @project(To do / ☐ simulations with different phases)
+    ✔ Power spectrum results? @done(2022-07-29 17:37) @project(To do / ☐ simulations with different phases)
+  ☐ Stochastic corrections from \delta into PS:
+    ☐ Plot the stochastic contribution in the pwer spectrum using a few terms of the Green's function. Does it make sense?
+    ✔ Clarify exactly how EFT corrects at the overdensity level (7.158 in Baldauf's review: the \delta^{(3)}_c term is added to the SPT solution without an additional a^{3} prefactor)  @done(2022-07-14 12:15) @project(To do / ☐ Stochastic corrections from \delta into PS)
+  ✔ Find the Λ → ∞ limit of c_tot^2 @done(2022-07-18 11:29) @project(To do)
+  ☐ How does the power spectrum depend on \Lambda?:
+    (we know this now, send plot to team_eft or at least inform them that nothing changes for sharp cutoff) @done(2022-07-12 17:43) @project(To do)
+    ☐ Does the P_13 term have its \Lambda dependence cancelled by the P_13^{corr} term in the Gaussian smoothing case?

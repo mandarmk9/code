@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+import numpy as np
+import matplotlib.pyplot as plt
+import h5py
+
+from functions import *
+from scipy.interpolate import interp1d
+from scipy.signal import convolve
+from zel import eulerian_sampling
+
+L = 2 * np.pi
+Nx = 8192
+dx = L / Nx
+
+x = np.arange(0, L, dx)
+k = np.fft.fftfreq(x.size, dx) * 2.0 * np.pi
+
+i = 55000
+
+#parameters
+h = 1e-4 #100 * (dx**2)
+sigma_x = 0.025
+H0 = 100
+rho_0 = 27.755
+m = rho_0 * dx
+p = np.sort(k * h)
+
+loc2 = '/vol/aibn31/data1/mandar/data/sch_14_hfix/' #sch_4096_high_amp_long_mode/
+Nfiles = 10000
+
+#a_list = np.empty(Nfiles)
+#for i in range(Nfiles):
+ #   with h5py.File(loc2 + 'psi_{0:05d}.hdf5'.format(i), 'r') as hdf:
+      #  ls = list(hdf.keys())
+     #   a = np.array(hdf.get(str(ls[0])))
+    #    a_list[i] = a
+
+#for j in range(12):
+#    gadget_files = '/vol/aibn31/data1/mandar/data/N64/'
+#    file = h5py.File(gadget_files + 'data_{0:03d}.hdf5'.format(j), mode='r')
+#    pos = np.array(file['/Positions'])
+#    # vel = np.array(file['/Velocities'])
+#    header = file['/Header']
+#    a_gadget = header.attrs.get('a')
+#    N = int(header.attrs.get('Nx'))
+#    file.close()
+
+
+ #   a_diff = np.abs(a_list - a_gadget)
+ #   a_ind = np.where(a_diff == np.min(a_diff))[0][0]
+ #   print(a_list[a_ind], a_gadget)
+ #   k_pos = np.fft.fftfreq(pos.size, dx) * 2.0 * np.pi
+    # a_ind = 0
+    # Nfiles = 1105
+
+#i = 10000    # for a_ind in range(1000, Nfiles, 20):
+with h5py.File(loc2 + 'psi_{0:05d}.hdf5'.format(i), 'r') as hdf:
+    ls = list(hdf.keys())
+    a = np.array(hdf.get(str(ls[0])))
+    psi = np.array(hdf.get(str(ls[1])))
+
+A = [-0.01, 1, -0.5, 11]
+kernel = W_g(x, sigma_x, x0=0.1)
+den_sch = np.abs(psi**2) - 1
+    # dc_sch = convolve_1d(kernel, d_sch)
+    # den_sch = (dc_sch - np.mean(dc_sch)) / np.mean(dc_sch)
+   # den_nbody = kde_gaussian(pos, sigma_x)
+
+    # den_new = f(x)
+
+    # dk_nbody = np.abs(np.fft.fft(den_nbody) ** 2)
+    # dk_sch = np.abs(np.fft.fft(den_sch) ** 2)
+#dx_zel = eulerian_sampling(x, a, A)[1]
+
+#fig, ax = plt.subplots()
+#ax.set_title('a = {}'.format(str(np.round(a, 3))))
+#ax.set_xlabel(r'x$\,$[$h^{-1}$ Mpc]', fontsize=12)
+#ax.set_ylabel(r'$\delta(x)$', fontsize=12)
+    # ax.set_xlabel(r'k$\,$[$h \; \mathrm{Mpc}^{-1}$]', fontsize=12)
+    # ax.set_ylabel(r'$|\tilde{\delta}|^{2}(k)$', fontsize=12)
+
+#ax.grid(linewidth=0.15, color='gray', linestyle='dashed')
+#ax.plot(x, den_sch, color='b', lw=2, label='Sch')
+#ax.plot(x, dx_zel, color='k', lw=2, ls='dashed', label='Zel')
+  #  ax.plot(pos, den_nbody, color='b', lw=2, label='N-body')
+    # ax.plot(x, den_new, color='b', lw=2, label='N-body')
+    # ax.scatter(np.zeros(4096), x, s=15, color='k')
+    # ax.scatter(np.zeros(256), pos, s=15, color='b')
+    # ax.scatter(k, dk_sch, color='b', s=8, label='Sch')
+    # ax.scatter(k_pos, dk_nbody, color='r', s=20, label='Nbody', marker='*')
+    # ax.set_xlim(0, 6.5)
+    # ax.set_ylim(-5e2, 1e4)
+    # title = ax.text(0.05, 0.9, 'a = {}'.format(str(np.round(a, 3))),  bbox={'facecolor':'w', 'alpha':0.5, 'pad':5}, transform=ax.transAxes, ha="left", va="bottom", fontsize=12)
+
+#plt.legend(fontsize=10)
+#plt.savefig('/vol/aibn31/data1/mandar/plots/sch_14_hfix/dc_{0:03d}.png'.format(i))
+#plt.close()
+#print('saving...')

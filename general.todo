@@ -1,0 +1,29 @@
+Conference Check:
+
+Brainstorming Sessions:
+
+
+Papers to Read:
+  ☐ Foreman et al: https://iopscience.iop.org/article/10.1088/1475-7516/2016/05/027/pdf
+
+
+Ideas:
+  ☐ Play around with x vs v vs a to understand phase-space evolution (see /plots/traj and last part of sc_finder.py)
+  ☐ How to determine the information content of a given statistic? Use this estimator of information to compare common cosmologically relevant statistics.
+  ☐ Is there information about f_{NL} in the evolved peculiar veolcity field? See: https://arxiv.org/pdf/2209.07251.pdf
+  ☐ Miko's paper and Emilio's DM halo populations.
+  ☐ In Frobenius' method to solve ODEs, does a transformation of the linear operator alter its indicial equations? Why (not)?
+  ☐ Is there something interesting/useful here: https://topology-tool-kit.github.io/examples/persistenceClustering1/
+  ☐ How does Cosmology affect the formation of galaxies. Use cosmological zoom-in simulations with small differences in Cosmology (with ICs, solver, feedback physics held constant).
+    Let's say for a MW-like galaxy, how does the small difference e.g. in \Omega_m change the properties of the galaxy.
+  ☐ Can we turn our SP solver into a full-fledged 3D SP solver and release it?
+  ☐ Use ML techniques to solve VP? Method of charecteristics?
+  ☐ Renormalisation in the theory of turbulence? Many old references: https://flow3d.co.kr/wp-content/uploads/Renormalization-Group-Analysis-of-Turbulence.I.-Basic-Theory.pdf
+
+
+
+General Tasks:
+  ☐ Submit IMPRS bio
+  ☐ Understand the difference between a field being Gaussian and the likelihood being Gaussian
+  ☐ Read https://academic.oup.com/mnras/article-abstract/503/1/1187/6166765
+  ☐ Use S instead of the full non-linear expansion, i.e. use (4.23) instead of (4.28) to input in continuity (https://arxiv.org/pdf/astro-ph/9708102.pdf)
