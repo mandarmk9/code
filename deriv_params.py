@@ -61,7 +61,7 @@ def binning(j, path, Lambda, kind, bsx, bsy, nbins, npars):
     indx = int(np.where(np.abs(dels) == min(np.abs(dels)))[0][0])
     indy = int(np.where(np.abs(thes) == min(np.abs(thes)))[0][0])
 
-    print(indx, indy)
+    # print(indx, indy)
     hd = (dels[indx] - dels[indx-1]) #+ (dels[indx] - dels[indx-1])
     ddtau = (taus[indx] - taus[indx-1]) / (hd)
 
@@ -70,8 +70,8 @@ def binning(j, path, Lambda, kind, bsx, bsy, nbins, npars):
 
     ht = (thes[indy] - thes[indy-1])
     dttau = (taus[indy] - taus[indy-1]) / (ht)
-    C_ = (taus[indx], ddtau, dttau)
-    print(C_)
+    C_ = (taus[indx], ddtau, dttau/2)
+    # print(C_)
 
     if npars == 1: #constant
         def fitting_function(X, a0):
@@ -119,7 +119,7 @@ def binning(j, path, Lambda, kind, bsx, bsy, nbins, npars):
         fit = fitting_function(X_, C0, C1, C2, C3, C4, C5)
 
     C = (C[0], C[1], C[2])
-    print(C)
+    # print(C)
 
     resid = fit_sp - taus
     chisq = sum((resid / yerr)**2)
@@ -133,27 +133,30 @@ def binning(j, path, Lambda, kind, bsx, bsy, nbins, npars):
 
 
 # bsx, bsy, nbins, npars = 0.25e-1, 0.25e-1, 40, 6
-bsx, bsy, nbins, npars = 1e-3, 3e-3, 50, 6
+bsx, bsy, nbins, npars = 1e-3, 3e-3, 10, 3
 
 a, x, tau_l, dc_l, dv_l, taus, dels, thes, delsq, thesq, delthe, yerr, aic, bic, fit_sp, fit, cov, C, C_ = binning(8, path, Lambda, kind, bsx, bsy, nbins, npars)
 
-fit = C[0] + C[1] * dc_l + C[2] * dv_l
-fit_ = C_[0] + C_[1] * dc_l + C_[2] * dv_l
+print(C)
+print(C_)
 
-plt.rcParams.update({"text.usetex": True})
-plt.rcParams.update({"font.family": "serif"})
-fig, ax = plt.subplots()
-ax.minorticks_on()
-ax.tick_params(axis='both', which='both', direction='in', labelsize=15)
-ax.yaxis.set_ticks_position('both')
-ax.set_ylabel(r'$\left<[\tau]_{\Lambda}\right>\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
-ax.set_xlabel(r'$x\;[h^{-1}\;\mathrm{Mpc}]$', fontsize=20)
-ax.set_title(r'$a = {}$'.format(np.round(a, 3)), fontsize=18)
-
-plt.plot(x, tau_l, c='b', label=r'measured')
-plt.plot(x, fit, c='r', ls='dashed', label='fit')
-plt.plot(x, fit_, c='k', ls='dashed', label='using derivatives')
-plt.legend(fontsize=14, bbox_to_anchor=(1, 1))
-plt.show()
-# plt.savefig('../plots/test/new_paper_plots/new_fits.png'.format(kind), bbox_inches='tight', dpi=150)
-# plt.close()
+# fit = C[0] + C[1] * dc_l + C[2] * dv_l
+# fit_ = C_[0] + C_[1] * dc_l + C_[2] * dv_l
+#
+# plt.rcParams.update({"text.usetex": True})
+# plt.rcParams.update({"font.family": "serif"})
+# fig, ax = plt.subplots()
+# ax.minorticks_on()
+# ax.tick_params(axis='both', which='both', direction='in', labelsize=15)
+# ax.yaxis.set_ticks_position('both')
+# ax.set_ylabel(r'$\left<[\tau]_{\Lambda}\right>\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
+# ax.set_xlabel(r'$x\;[h^{-1}\;\mathrm{Mpc}]$', fontsize=20)
+# ax.set_title(r'$a = {}$'.format(np.round(a, 3)), fontsize=18)
+#
+# plt.plot(x, tau_l, c='b', label=r'measured')
+# plt.plot(x, fit, c='r', ls='dashed', label='fit')
+# plt.plot(x, fit_, c='k', ls='dashed', label='using derivatives')
+# plt.legend(fontsize=14, bbox_to_anchor=(1, 1))
+# plt.show()
+# # plt.savefig('../plots/test/new_paper_plots/new_fits.png'.format(kind), bbox_inches='tight', dpi=150)
+# # plt.close()

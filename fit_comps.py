@@ -71,9 +71,9 @@ for j in range(3):
 plt.legend(fontsize=18, bbox_to_anchor=(1, 1.325))
 fig.align_labels()
 plt.subplots_adjust(wspace=0.17)
-# plt.show()
-plt.savefig('../plots/test/new_paper_plots/tau_fits_{}.pdf'.format(kind), bbox_inches='tight', dpi=300)
-plt.close()
+plt.show()
+# plt.savefig('../plots/test/new_paper_plots/tau_fits_{}.pdf'.format(kind), bbox_inches='tight', dpi=300)
+# plt.close()
 
 
 #     # print('number of parameters used = {}'.format(npars))

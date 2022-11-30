@@ -381,6 +381,7 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 # nums = [0, 13, 23]
 #
 # nbins_x, nbins_y, npars = 20, 20, 6
+# fm = 'curve_fit'
 #
 # ctot2_0_list, ctot2_1_list, ctot2_2_list, error_list = [[], [], []],  [[], [], []], [[], [], []], [[], [], []]
 # a_list = []
@@ -390,7 +391,7 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 #     file_num = nums[j]
 #     for i in range(5):
 #         Lambda = Lambda_list[i] * (2*np.pi)
-#         sol = param_calc_ens(file_num, Lambda, path, A, mode, kind, n_runs, n_use, fitting_method='', nbins_x=nbins_x, nbins_y=nbins_y, npars=npars)
+#         sol = param_calc_ens(file_num, Lambda, path, A, mode, kind, n_runs, n_use, fitting_method=fm, nbins_x=nbins_x, nbins_y=nbins_y, npars=npars)
 #         a = float(sol[0])
 #         c0.append(float(sol[2]))
 #         c1.append(float(sol[3]))
@@ -448,9 +449,9 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 # fig.align_labels()
 # plt.subplots_adjust(wspace=0.2)
 # # plt.savefig('../plots/test/new_paper_plots/ctot2_lambda_dep_{}.png'.format(kind), bbox_inches='tight', dpi=150)
-# plt.savefig('../plots/test/new_paper_plots/ctot2_lambda_dep_{}.pdf'.format(kind), bbox_inches='tight', dpi=300)
-# plt.close()
-# # plt.show()
+# # plt.savefig('../plots/test/new_paper_plots/ctot2_lambda_dep_{}.pdf'.format(kind), bbox_inches='tight', dpi=300)
+# # plt.close()
+# plt.show()
 
 
 # path = 'cosmo_sim_1d/sim_k_1_11/run1/'
@@ -632,102 +633,102 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 #     #
 #     # plt.close()
 
-a_list, ctot2_list, ctot2_2_list, ctot2_3_list, err1_list, err2_list, chi_list, t_err = [], [], [], [], [], [], [], []
-# path = 'cosmo_sim_1d/sim_k_1_11/run1/'
-# path = 'cosmo_sim_1d/sim_k_1_11/run1/'
-
-A = [-0.05, 1, -0.5, 11]
-Nfiles = 25
-Lambda = 3 * (2*np.pi)
-kind = 'sharp'
-kind_txt = 'sharp cutoff'
-
-kind = 'gaussian'
-kind_txt = 'Gaussian smoothing'
-
-n_runs = 8
-n_use = n_runs-2
-mode = 1
-# path = 'cosmo_sim_1d/another_sim_k_1_11/run1/'
-# path = 'cosmo_sim_1d/final_sim_k_1_11/run1/'
-path = 'cosmo_sim_1d/sim_k_1_11/run1/'
-
-
-flags = np.loadtxt(fname=path+'/sc_flags.txt', delimiter='\n')
-folder_name = '' #'/new_data_{}/L{}'.format('sharp', int(Lambda/(2*np.pi)))
-# path = 'cosmo_sim_1d/another_sim_k_1_11/run1/'
-
-f1 = 'curve_fit'
-# f1 = ''
-nbins_x = 15
-nbins_y = 15
-npars = 6
-
-plt.rcParams.update({"text.usetex": True})
-plt.rcParams.update({"font.family": "serif"})
-# plt.rcParams.update({'font.weight': 'bold'})
-fig, ax = plt.subplots(figsize=(10, 6))
-for j in range(Nfiles):
-    sol = param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name, fitting_method=f1, nbins_x=nbins_x, nbins_y=nbins_y, npars=npars)
-    a_list.append(sol[0])
-    ctot2_list.append(sol[2])
-    ctot2_2_list.append(sol[3])
-    ctot2_3_list.append(sol[4])
-
-    err1_list.append(sol[6])
-    err2_list.append(sol[7])
-    chi_list.append(sol[10])
-    t_err.append(sol[-7])
-
-    aic = AIC(npars, sol[-1])
-    print('a = ', sol[0], j, aic)
-    if flags[j] == 1:
-        sc_line = ax.axvline(a_list[j], c='teal', lw=1, zorder=1)
-
-chi_list = np.array(chi_list)
-t_err = np.array(t_err)
-# ind = np.where(np.max(chi_list) == chi_list)[0][0]
-# chi_list[ind] = chi_list[ind-1]
-
-
-ax.set_title(r'$\Lambda = {} \;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(int(Lambda/(2*np.pi)), kind_txt), fontsize=18, y=1.01)
-ax.set_xlabel(r'$a$', fontsize=20)
-# ax.fill_between(a_list, ctot2_list-t_err, ctot2_list+t_err, color='darkslategray', alpha=0.55, zorder=2)
-ax.set_ylabel('$c_{\mathrm{tot}}^{2}[\mathrm{km}^{2}s^{-2}]$', fontsize=20)
-
-
-# ctot2_line, = ax.plot(a_list, ctot2_list, c='k', lw=1.5, zorder=4, marker='o')
-ctot2_2_line, = ax.plot(a_list, ctot2_2_list, c='brown', lw=1.5, marker='*', zorder=2)
-ctot2_3_line, = ax.plot(a_list, ctot2_3_list, c='orange', lw=1.5, marker='v', zorder=3)
-plt.legend(handles=[sc_line, ctot2_2_line, ctot2_3_line], labels=[r'$a_\mathrm{sc}$', r'M\&W', r'$\mathrm{B^{+12}}$'], fontsize=14, loc=1, framealpha=1)
-
-# plt.legend(handles=[sc_line, ctot2_line, ctot2_2_line, ctot2_3_line], labels=[r'$a_\mathrm{sc}$', r'from fit to $\langle[\tau]_{\Lambda}\rangle$', r'M\&W', r'$\mathrm{B^{+12}}$'], fontsize=14, loc=1, framealpha=1)
-# plt.legend(handles=[sc_line, ctot2_line, ctot2_2_line], labels=[r'$a_\mathrm{sc}$', r'from fit to $\langle[\tau]_{\Lambda}\rangle$', r'M\&W'], fontsize=14, loc=1, framealpha=1)
-
-# plt.legend(handles=[sc_line], labels=[r'$a_\mathrm{sc}$'], fontsize=14)
-
-# obj = ax.scatter(a_list, ctot2_list, c=chi_list, s=40, cmap='rainbow', norm=colors.LogNorm(vmin=chi_list.min(), vmax=chi_list.max()), zorder=4)#, label=r'$c^{2}_{\mathrm{tot}}$')
-# cbar = fig.colorbar(obj, ax=ax)#, title=r'$\mathrm{log}(\chi^{2}/\mathrm{d.o.f.}$')
-# cbar.ax.set_ylabel(r'$\chi^{2}/\mathrm{d.o.f.}$', fontsize=18)
-
-# ax.errorbar(a_list, ctot2_list, yerr=t_err, c='k', linestyle="None")  #, marker='o', markerfacecolor='b', markeredgecolor='b', markersize=5)#
-# ax.set_ylim(0,1.5)
-
-ax.minorticks_on()
-ax.tick_params(axis='both', which='both', direction='in', labelsize=15)
-ax.yaxis.set_ticks_position('both')
-
-# ax.legend(fontsize=11)
-# plt.show()
-# # plt.savefig('../plots/test/ctot2/err/ctot2_{}_all.png'.format(kind), bbox_inches='tight', dpi=150) #ctot2/err/lined/
-# plt.savefig('../plots/test/ctot2/err/ctot2_{}_all.pdf'.format(kind), bbox_inches='tight', dpi=300) #ctot2/err/lined/
-# plt.savefig('../plots/test/ctot2/err/ctot2_{}.pdf'.format(kind), bbox_inches='tight', dpi=300) #ctot2/err/lined/
-# plt.savefig('../plots/sim_k_1_11/ctot2_ev_{}.png'.format(kind), bbox_inches='tight', dpi=150) #ctot2/err/lined/
+# a_list, ctot2_list, ctot2_2_list, ctot2_3_list, err1_list, err2_list, chi_list, t_err = [], [], [], [], [], [], [], []
+# # path = 'cosmo_sim_1d/sim_k_1_11/run1/'
+# # path = 'cosmo_sim_1d/sim_k_1_11/run1/'
 #
-# plt.savefig('../plots/test/new_paper_plots/ctot2_ev_{}.pdf'.format(kind), bbox_inches='tight', dpi=300) #ctot2/err/lined/
-# # plt.savefig('../plots/test/new_paper_plots/ctot2_ev_{}.png'.format(kind), bbox_inches='tight', dpi=150) #ctot2/err/lined/
-# plt.close()
-plt.show()
+# A = [-0.05, 1, -0.5, 11]
+# Nfiles = 51
+# Lambda = 3 * (2*np.pi)
+# kind = 'sharp'
+# kind_txt = 'sharp cutoff'
+#
+# kind = 'gaussian'
+# kind_txt = 'Gaussian smoothing'
+#
+# n_runs = 8
+# n_use = n_runs-2
+# mode = 1
+# # path = 'cosmo_sim_1d/another_sim_k_1_11/run1/'
+# # path = 'cosmo_sim_1d/final_sim_k_1_11/run1/'
+# path = 'cosmo_sim_1d/sim_k_1_11/run1/'
+#
+#
+# flags = np.loadtxt(fname=path+'/sc_flags.txt', delimiter='\n')
+# folder_name = '' #'/new_data_{}/L{}'.format('sharp', int(Lambda/(2*np.pi)))
+# # path = 'cosmo_sim_1d/another_sim_k_1_11/run1/'
+#
+# f1 = 'curve_fit'
+# # f1 = ''
+# nbins_x = 15
+# nbins_y = 15
+# npars = 6
+#
+# plt.rcParams.update({"text.usetex": True})
+# plt.rcParams.update({"font.family": "serif"})
+# # plt.rcParams.update({'font.weight': 'bold'})
+# fig, ax = plt.subplots(figsize=(10, 6))
+# for j in range(Nfiles):
+#     sol = param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name, fitting_method=f1, nbins_x=nbins_x, nbins_y=nbins_y, npars=npars)
+#     a_list.append(sol[0])
+#     ctot2_list.append(sol[2])
+#     ctot2_2_list.append(sol[3])
+#     ctot2_3_list.append(sol[4])
+#
+#     err1_list.append(sol[6])
+#     err2_list.append(sol[7])
+#     chi_list.append(sol[10])
+#     t_err.append(sol[-7])
+#
+#     aic = AIC(npars, sol[-1])
+#     print('a = ', sol[0], j, aic)
+#     if flags[j] == 1:
+#         sc_line = ax.axvline(a_list[j], c='teal', lw=1, zorder=1)
+#
+# chi_list = np.array(chi_list)
+# t_err = np.array(t_err)
+# # ind = np.where(np.max(chi_list) == chi_list)[0][0]
+# # chi_list[ind] = chi_list[ind-1]
+#
+#
+# ax.set_title(r'$\Lambda = {} \;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(int(Lambda/(2*np.pi)), kind_txt), fontsize=18, y=1.01)
+# ax.set_xlabel(r'$a$', fontsize=20)
+# # ax.fill_between(a_list, ctot2_list-t_err, ctot2_list+t_err, color='darkslategray', alpha=0.55, zorder=2)
+# ax.set_ylabel('$c_{\mathrm{tot}}^{2}[\mathrm{km}^{2}s^{-2}]$', fontsize=20)
+#
+#
+# # ctot2_line, = ax.plot(a_list, ctot2_list, c='k', lw=1.5, zorder=4, marker='o')
+# ctot2_2_line, = ax.plot(a_list, ctot2_2_list, c='brown', lw=1.5, marker='*', zorder=2)
+# ctot2_3_line, = ax.plot(a_list, ctot2_3_list, c='orange', lw=1.5, marker='v', zorder=3)
+# # plt.legend(handles=[sc_line, ctot2_line, ctot2_2_line, ctot2_3_line], labels=[r'$a_\mathrm{sc}$', r'from fit to $\langle[\tau]_{\Lambda}\rangle$', r'M\&W', r'$\mathrm{B^{+12}}$'], fontsize=14, loc=1, framealpha=1)
+# plt.legend(handles=[sc_line, ctot2_2_line, ctot2_3_line], labels=[r'$a_\mathrm{sc}$', r'M\&W', r'$\mathrm{B^{+12}}$'], fontsize=14, loc=1, framealpha=1)
+#
+# # plt.legend(handles=[sc_line, ctot2_line, ctot2_2_line], labels=[r'$a_\mathrm{sc}$', r'from fit to $\langle[\tau]_{\Lambda}\rangle$', r'M\&W'], fontsize=14, loc=1, framealpha=1)
+#
+# # plt.legend(handles=[sc_line], labels=[r'$a_\mathrm{sc}$'], fontsize=14)
+#
+# # obj = ax.scatter(a_list, ctot2_list, c=chi_list, s=40, cmap='rainbow', norm=colors.LogNorm(vmin=chi_list.min(), vmax=chi_list.max()), zorder=4)#, label=r'$c^{2}_{\mathrm{tot}}$')
+# # cbar = fig.colorbar(obj, ax=ax)#, title=r'$\mathrm{log}(\chi^{2}/\mathrm{d.o.f.}$')
+# # cbar.ax.set_ylabel(r'$\chi^{2}/\mathrm{d.o.f.}$', fontsize=18)
+#
+# # ax.errorbar(a_list, ctot2_list, yerr=t_err, c='k', linestyle="None")  #, marker='o', markerfacecolor='b', markeredgecolor='b', markersize=5)#
+# # ax.set_ylim(0,1.5)
+#
+# ax.minorticks_on()
+# ax.tick_params(axis='both', which='both', direction='in', labelsize=15)
+# ax.yaxis.set_ticks_position('both')
+#
+# # ax.legend(fontsize=11)
+# # plt.show()
+# # # plt.savefig('../plots/test/ctot2/err/ctot2_{}_all.png'.format(kind), bbox_inches='tight', dpi=150) #ctot2/err/lined/
+# # plt.savefig('../plots/test/ctot2/err/ctot2_{}_all.pdf'.format(kind), bbox_inches='tight', dpi=300) #ctot2/err/lined/
+# # plt.savefig('../plots/test/ctot2/err/ctot2_{}.pdf'.format(kind), bbox_inches='tight', dpi=300) #ctot2/err/lined/
+# # plt.savefig('../plots/sim_k_1_11/ctot2_ev_{}.png'.format(kind), bbox_inches='tight', dpi=150) #ctot2/err/lined/
+# #
+# # plt.savefig('../plots/test/new_paper_plots/ctot2_ev_{}.pdf'.format(kind), bbox_inches='tight', dpi=300) #ctot2/err/lined/
+# # # plt.savefig('../plots/test/new_paper_plots/ctot2_ev_{}.png'.format(kind), bbox_inches='tight', dpi=150) #ctot2/err/lined/
+# # plt.close()
+# plt.show()
 
 # path = 'cosmo_sim_1d/sim_k_1_15/run2/'
 # A = [-0.05, 1, -0.5, 11]

@@ -22,6 +22,9 @@ kind_txt = 'sharp cutoff'
 j = 0
 a, x, d1k, dc_l, dv_l, tau_l, P_nb, P_1l = read_sim_data(path, Lambda, kind, j)
 dv_l *= -np.sqrt(a) / 100
+tau_l -= np.mean(tau_l)
+
+# plt.plot(x, tau_l)
 
 # dc_l = np.sort(dc_l)
 # dc_l = np.sort(dc_l)
@@ -72,8 +75,7 @@ def dir_der_o2(X, tau_l, ind):
     return v, D2_v_tau
 
 
-def new_param_calc(dc_l, dv_l, tau_l, dist):
-    ind = np.argmin(dc_l**2 + dv_l**2)
+def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
     X = np.array([dc_l, dv_l])
     j = 0
     # v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
@@ -109,7 +111,9 @@ def new_param_calc(dc_l, dv_l, tau_l, dist):
     for j in range(-dist//2, dist//2 + 1):
         v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
         v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
-        C_ = [tau_l[ind], dtau1, dtau1_o2/2]
+        dc_0, dv_0 = dc_l[ind], dv_l[ind]
+        # C_ = [tau_l[ind], dtau1, dtau1_o2/2]
+        C_ = [(tau_l[ind]-dtau1*dc_0+(dtau1_o2*dc_0**2)/2), dtau1-(dtau1_o2*dc_0), dtau1_o2/2]
 
 
     # for j in range(1):
@@ -163,9 +167,54 @@ def new_param_calc(dc_l, dv_l, tau_l, dist):
     C_ = [C0_, C1_, C2_] #, C3_, C4_, C5_]
     return C_
 
-dist = 1000
-tau_l -= np.mean(tau_l)
-C_ = new_param_calc(dc_l, dv_l, tau_l, dist)
+dist = 100
+# ind = np.argmin(dc_l**2 + dv_l**2)
+# C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+
+params_list = []
+# print(dc_l.max(), dc_l.min())
+delta = 0.001
+points = np.arange(dc_l.min()/1.5, dc_l.max()/1.5, delta)
+
+
+# npoints = 50
+inds = []
+# dtau = np.abs(tau_l-0.4)
+# ind = np.argmin(dtau)
+# dc_0, dv_0 = dc_l[ind], dv_l[ind]#np.repeat(dc_l[np.argmax(tau_l)-1000], 2)
+# ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
+# # # ind = np.argmax(tau_l) - 500 #np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
+
+# # print(dc_l[ind], tau_l[ind])
+# ind = np.argmin((dc_l)**2 + (dv_l)**2)
+# for gap in range(npoints):
+#     gap *= dc_l.size//npoints
+#     inds.append(int(ind-gap))
+# # inds = [ind]
+#
+# for ind in inds:
+#     C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+#     params_list.append(C_)
+#
+#
+# print(points)
+
+# ind = np.argmax(dc_l)
+# print(dc_l.max(), dc_l[ind-5:ind+5])
+
+for del_x in points:
+    dc_0, dv_0 = np.repeat(del_x, 2)
+    ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
+    # print(ind)
+    # print(tau_l[ind])
+    C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+    params_list.append(C_)
+
+C0_ = np.mean([params_list[j][0] for j in range(len(params_list))])
+C1_ = np.mean([params_list[j][1] for j in range(len(params_list))])
+C2_ = np.mean([params_list[j][2] for j in range(len(params_list))])
+C_ = [C0_, C1_, C2_]
+
 # # C0_, C1_, C2_, C3_, C4_, C5_ = C_
 
 # tau_l = 11*dc_l - 7*dc_l + 15*dc_l**2 + dv_l**3 + 2*dv_l**2 + 1.55 #dc_l**2 + dv_l**2
@@ -293,39 +342,42 @@ fit2 = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
 # fit = dc_l**2 + dv_l**2 + 2*dc_l*dv_l #dc_l + dv_l
 # fit2 = 4*dc_l**2 #2*dc_l
 
-del_tau = fit2-tau_l
-plt.rcParams.update({"text.usetex": True})
-fig, ax = plt.subplots()
-ax.scatter(tau_l, del_tau, c='b', s=2)
-ax.set_xlabel(r'$\tau_{l}$')
-ax.set_ylabel(r'$\Delta \tau_{l}$')
+# del_tau = fit2-tau_l
+# plt.rcParams.update({"text.usetex": True})
+# fig, ax = plt.subplots()
+# ax.scatter(tau_l, del_tau, c='b', s=2)
+# ax.set_xlabel(r'$\tau_{l}$')
+# ax.set_ylabel(r'$\Delta \tau_{l}$')
+# plt.show()
+# # plt.savefig('../plots/test/new_paper_plots/tau_diff.png', bbox_inches='tight', dpi=150)
+# # plt.close()
 
-plt.savefig('../plots/test/new_paper_plots/tau_diff.png', bbox_inches='tight', dpi=150)
-plt.close()
+# plt.plot(x, dc_l)
+# plt.show()
 
 # ind = np.argmin(dc_l**2 + dv_l**2)
 # print(fit[ind], fit2[ind])
-#
-# plt.rcParams.update({"text.usetex": True})
-# plt.rcParams.update({"font.family": "serif"})
-# fig, ax = plt.subplots()
-# ax.minorticks_on()
-# ax.tick_params(axis='both', which='both', direction='in', labelsize=15)
-# ax.yaxis.set_ticks_position('both')
-# # ax.set_ylabel(r'$\left<[\tau]_{\Lambda}\right>\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
-# ax.set_ylabel(r'$[\tau]_{\Lambda}\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
-#
-# ax.set_xlabel(r'$x\;[h^{-1}\;\mathrm{Mpc}]$', fontsize=20)
-# ax.set_title(r'$a ={}, \Lambda = {} \;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(np.round(a,3), int(Lambda/(2*np.pi)), kind_txt), fontsize=16, y=1.01)
-#
-# plt.plot(x, tau_l, c='b', label=r'measured')
-# plt.plot(x, fit, c='r', ls='dashed', label='fit')
-# plt.plot(x, fit2, c='k', ls='dashed', label='using derivatives')
-# # plt.plot(x, fit3, c='cyan', ls='dotted', label='using derivatives 2')
-#
-#
-# # plt.plot(x, est, c='k', ls='dashed', label='using derivatives')
-# plt.legend(fontsize=14, bbox_to_anchor=(1, 1))
-# # plt.show()
+
+plt.rcParams.update({"text.usetex": True})
+plt.rcParams.update({"font.family": "serif"})
+fig, ax = plt.subplots()
+ax.minorticks_on()
+ax.tick_params(axis='both', which='both', direction='in', labelsize=15)
+ax.yaxis.set_ticks_position('both')
+# ax.set_ylabel(r'$\left<[\tau]_{\Lambda}\right>\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
+ax.set_ylabel(r'$[\tau]_{\Lambda}\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
+
+ax.set_xlabel(r'$x\;[h^{-1}\;\mathrm{Mpc}]$', fontsize=20)
+ax.set_title(r'$a ={}, \Lambda = {} \;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(np.round(a,3), int(Lambda/(2*np.pi)), kind_txt), fontsize=16, y=1.01)
+
+plt.plot(x, tau_l, c='b', label=r'measured')
+plt.plot(x, fit, c='r', ls='dashed', label='fit')
+plt.plot(x, fit2, c='k', ls='dashed', label='using derivatives')
+# plt.plot(x, fit3, c='cyan', ls='dotted', label='using derivatives 2')
+
+
+# plt.plot(x, est, c='k', ls='dashed', label='using derivatives')
+plt.legend(fontsize=14, bbox_to_anchor=(1, 1))
+plt.show()
 # plt.savefig('../plots/test/new_paper_plots/test.png'.format(kind), bbox_inches='tight', dpi=150)
 # plt.close()

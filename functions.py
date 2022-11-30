@@ -1228,7 +1228,7 @@ def param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name=''
         try:
             terr = np.sqrt(err1**2 + err2**2 + corr[1,2]*err1*err2 + corr[2,1]*err2*err1)
         except:
-            print('boo')
+            # print('boo')
             terr = 0
 
         x_binned = None
@@ -1289,37 +1289,70 @@ def param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name=''
 
     ctot2_2 = np.real(sum(num) / sum(denom)) / rho_b
 
-    # Baumann estimator
-    def Power(f1_k, f2_k, Lambda_int):
-      corr = (f1_k * np.conj(f2_k) + np.conj(f1_k) * f2_k) / 2
-      ntrunc = corr.size - Lambda_int
-      corr[Lambda_int+1:ntrunc] = 0
-      return corr
-
-    A = np.fft.fft(tau_l) / rho_b / tau_l.size
-    T = np.fft.fft(dv_l) / (H0 / (a**(1/2))) / dv_l.size
-    d = dc_l#np.fft.fft(dc_l) / dc_l.size
-    # A = tau_l / tho_b
-    # T = dv_l / (H0 / (a**(1/2)))
-
-    Ad = Power(A, dc_l, Lambda_int)[mode]
-    AT = Power(A, T, Lambda_int)[mode]
-    P_dd = Power(dc_l, dc_l, Lambda_int)[mode]
-    P_TT = Power(T, T, Lambda_int)[mode]
-    P_dT = Power(dc_l, T, Lambda_int)[mode]
-
-
+    # # Baumann estimator
+    # def Power(f1_k, f2_k, Lambda_int):
+    #   corr = (f1_k * np.conj(f2_k) + np.conj(f1_k) * f2_k) / 2
+    #   ntrunc = corr.size - Lambda_int
+    #   corr[Lambda_int+1:ntrunc] = 0
+    #   return corr
+    #
+    # A = np.fft.fft(tau_l) / rho_b / tau_l.size
+    # T = np.fft.fft(dv_l) / (H0 / (a**(1/2))) / dv_l.size
+    # d = dc_l#np.fft.fft(dc_l) / dc_l.size
+    # # A = tau_l / tho_b
+    # # T = dv_l / (H0 / (a**(1/2)))
+    #
     # Ad = Power(A, dc_l, Lambda_int)[mode]
     # AT = Power(A, T, Lambda_int)[mode]
     # P_dd = Power(dc_l, dc_l, Lambda_int)[mode]
     # P_TT = Power(T, T, Lambda_int)[mode]
     # P_dT = Power(dc_l, T, Lambda_int)[mode]
+    #
+    #
+    # # Ad = Power(A, dc_l, Lambda_int)[mode]
+    # # AT = Power(A, T, Lambda_int)[mode]
+    # # P_dd = Power(dc_l, dc_l, Lambda_int)[mode]
+    # # P_TT = Power(T, T, Lambda_int)[mode]
+    # # P_dT = Power(dc_l, T, Lambda_int)[mode]
+    #
+    # cs2_3 = ((P_TT * Ad) - (P_dT * AT)) / (P_dd * P_TT - (P_dT)**2)
+    # cv2_3 = ((P_dT * Ad) - (P_dd * AT)) / (P_dd * P_TT - (P_dT)**2)
+    #
+    # ctot2_3 = np.real(cs2_3 + cv2_3)
 
-    cs2_3 = ((P_TT * Ad) - (P_dT * AT)) / (P_dd * P_TT - (P_dT)**2)
-    cv2_3 = ((P_dT * Ad) - (P_dd * AT)) / (P_dd * P_TT - (P_dT)**2)
+    # def Power(f1, f2):
+    #     f1_k = np.fft.fft(f1)
+    #     f2_k = np.fft.fft(f2)
+    #     corr = (f1_k * np.conj(f2_k) + np.conj(f1_k) * f2_k) / 2
+    #     return np.real(np.fft.ifft(corr))
+    #
+    # A = spectral_calc(tau_l, 1, o=2, d=0) / rho_b / (a**2)
+    # T = -dv_l / (H0 / (a**(1/2)))
+    # P_AT = Power(A, T)
+    # P_dT = Power(dc_l, T)
+    # P_Ad = Power(A, dc_l)
+    # P_TT = Power(T, T)
+    # P_dd = Power(dc_l, dc_l)
+    #
+    # num_cs2 = (P_AT * spectral_calc(P_dT, 1, o=2, d=0)) - (P_Ad * spectral_calc(P_TT, 1, o=2, d=0))
+    # num_cv2 = (P_Ad * spectral_calc(P_dT, 1, o=2, d=0)) - (P_AT * spectral_calc(P_dd, 1, o=2, d=0))
+    # den = ((spectral_calc(P_dT, 1, o=2, d=0))**2 / (a**2)) - (spectral_calc(P_dd, 1, o=2, d=0) * spectral_calc(P_TT, 1, o=2, d=0) / a**2)
+    #
+    # ctot2_3 = np.median((num_cs2 + num_cv2) / den)#[0]
 
-    ctot2_3 = np.real(cs2_3 + cv2_3)
-    return a, x, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, tau_l, fit, terr, P_nb, P_1l, d1k, taus, x_binned, chisq
+    T = -dv_l / (H0 / (a**(1/2)))
+
+    def Power_fou(f1, f2):
+        f1_k = np.fft.fft(f1)
+        f2_k = np.fft.fft(f2)
+        corr = (f1_k * np.conj(f2_k) + np.conj(f1_k) * f2_k) / 2
+        return corr[1]
+
+    ctot2_3 = np.real(Power_fou(tau_l/rho_b, dc_l) / Power_fou(dc_l, T))
+
+    ctot2_4 = deriv_param_calc(dc_l, dv_l, tau_l)[1] / rho_b
+
+    return a, x, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, tau_l, fit, terr, P_nb, P_1l, d1k, taus, x_binned, chisq, ctot2_4
     # return a, pos, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, taus, fit_sp, terr, P_nb, P_1l, d1k
 
 
@@ -1723,3 +1756,69 @@ def read_hier(path, j):
     M2 = np.array(moments[mom_keys[5]])
     file.close()
     return a, dx, M0, M1, M2, C0, C1, C2
+
+
+def deriv_param_calc(dc_l, dv_l, tau_l):
+    def dir_der_o1(X, tau_l, ind):
+        """Calculates the first-order directional derivative of tau_l along the vector X."""
+        x1 = np.array([X[0][ind], X[1][ind]])
+        x2 = np.array([X[0][ind+1], X[1][ind+1]])
+        v = (x2 - x1)
+        D_v_tau = (tau_l[ind+1] - tau_l[ind]) / v[0]
+        return v, D_v_tau
+
+    def dir_der_o2(X, tau_l, ind):
+        """Calculates the second-order directional derivative of tau_l along the vector X."""
+        #calculate the first-order directional derivatives at two different points
+        v0, D_v_tau0 = dir_der_o1(X, tau_l, ind-2)
+        v1, D_v_tau1 = dir_der_o1(X, tau_l, ind)
+        v2, D_v_tau2 = dir_der_o1(X, tau_l, ind+2)
+        x0 = np.array([X[0][ind-2], X[1][ind-2]])
+        x1 = np.array([X[0][ind], X[1][ind]])
+        x2 = np.array([X[0][ind+2], X[1][ind+2]])
+        v = (x2 - x1)
+        D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
+        return v, D2_v_tau
+
+    def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
+        X = np.array([dc_l, dv_l])
+        j = 0
+        params_list = []
+        for j in range(-dist//2, dist//2 + 1):
+            v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
+            v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
+            C_ = [tau_l[ind], dtau1, dtau1_o2/2]
+            params_list.append(C_)
+
+
+        params_list = np.array(params_list)
+        C0_ = np.mean(np.array([params_list[j][0] for j in range(dist)]))
+        C1_ = np.mean(np.array([params_list[j][1] for j in range(dist)]))
+        C2_ = np.mean(np.array([params_list[j][2] for j in range(dist)]))
+
+        C_ = [C0_, C1_, C2_]
+        return C_
+
+    dist = 50
+    # params_list = []
+    # inds = []
+    # ind = np.argmin(dc_l**2 + dv_l**2)
+    # n_points = 40
+    # for gap in range(n_points):
+    #     gap *= dc_l.size//n_points
+    #     inds.append(int(ind-gap))
+    #
+    #
+    # for ind in inds:
+    #     C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+    #     params_list.append(C_)
+    #
+    # C0_ = np.mean([params_list[j][0] for j in range(len(params_list))])
+    # C1_ = np.mean([params_list[j][1] for j in range(len(params_list))])
+    # C2_ = np.mean([params_list[j][2] for j in range(len(params_list))])
+
+    ind = np.argmin(dc_l**2 + dv_l**2)
+    C0_, C1_, C2_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+
+    C_ = [C0_, C1_, C2_]
+    return C_

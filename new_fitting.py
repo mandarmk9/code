@@ -14,17 +14,17 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
 path = 'cosmo_sim_1d/sim_k_1_11/run1/'
 Lambda = 3 * (2 * np.pi)
-# kind = 'sharp'
-# kind_txt = 'sharp cutoff'
-kind = 'gaussian'
-kind_txt = 'Gaussian smoothing'
+kind = 'sharp'
+kind_txt = 'sharp cutoff'
+# kind = 'gaussian'
+# kind_txt = 'Gaussian smoothing'
 
-j = 13
+j = 10
 a, x, d1k, dc_l, dv_l, tau_l, P_nb, P_1l = read_sim_data(path, Lambda, kind, j)
-print(x.size, x.size*2)
 # print(a)
-dv_l *= np.sqrt(a) / 100
+dv_l *= -np.sqrt(a) / 100
 tau_l -= np.mean(tau_l)
+# plt.plot(x, tau_l)
 
 def dir_der_o1(X, tau_l, ind):
     """Calculates the first-order directional derivative of tau_l along the vector X."""
@@ -63,7 +63,7 @@ def new_param_calc(dc_l, dv_l, tau_l, dist):
     C_ = [C0_, C1_, C2_]
     return C_
 
-dist = 1000
+dist = 20
 C_ = new_param_calc(dc_l, dv_l, tau_l, dist)
 
 # # tau_l -= np.mean(tau_l)
@@ -315,17 +315,15 @@ ax.tick_params(axis='both', which='both', direction='in', labelsize=13.5)
 # ax.plot(dels, thes, c='seagreen', lw=2, marker='o')
 cm = plt.cm.get_cmap('RdYlBu')
 
-# ax.axvline(0, lw=0.2, c='k', ls='dashed')
-# ax.axhline(0, lw=0.2, c='k', ls='dashed')
-ind = np.argmin(dc_l**2 + dv_l**2)
+ax.axvline(0, lw=0.5, c='k', ls='dashed')
+ax.axhline(0, lw=0.5, c='k', ls='dashed')
 # ax.scatter(dc_l, dv_l, c='b', s=10)
-# ax.scatter(dc_l[ind+1], dv_l[ind+1], c='k', s=20)
 from matplotlib import ticker
 # obj = ax.scatter(dc_l, dv_l, c=tau_l, s=20, cmap='rainbow', norm=colors.LogNorm(vmin=tau_l.min(), vmax=tau_l.max()))
 # taus_calc -= np.mean(taus_calc)
 
 fit = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
-del_tau = fit - tau_l
+del_tau = tau_l-0.06 #fit - tau_l
 print(del_tau.min(), del_tau.max())
 obj = ax.scatter(dc_l, dv_l, c=del_tau, s=20, cmap='rainbow', rasterized=True)#, norm=colors.Normalize(vmin=del_tau.min(), vmax=del_tau.max()))
 
@@ -336,14 +334,56 @@ obj = ax.scatter(dc_l, dv_l, c=del_tau, s=20, cmap='rainbow', rasterized=True)#,
 # ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
 # ax.scatter(dc_l[ind+j], dv_l[ind+j], c='k', s=20)
 
+
+
 cbar = fig.colorbar(obj, ax=ax)
-# cbar.ax.set_ylabel(r'$[\tau]_{\Lambda}$', fontsize=18)
-cbar.ax.set_ylabel(r'$\Delta[\tau]_{\Lambda}\; [\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=18)
+cbar.ax.set_ylabel(r'$[\tau]_{\Lambda}$', fontsize=18)
+# cbar.ax.set_ylabel(r'$\Delta[\tau]_{\Lambda}\; [\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=18)
 cbar.ax.tick_params(labelsize=12.5)
 
 tick_locator = ticker.MaxNLocator(nbins=10)
 cbar.locator = tick_locator
 cbar.update_ticks()
+
+# ind = np.argmin(dc_l**2 + dv_l**2)
+# npoints = 20
+# for gap in range(npoints):
+#     gap *= dc_l.size//npoints
+#     ax.scatter(dc_l[ind-gap], dv_l[ind-gap], c='k', s=20)
+#     # ax.scatter(dc_l[ind+gap], dv_l[ind+gap], c='k', s=20)
+# dc_0, dv_0 = dc_l[np.argmax(tau_l)-2000], dv_l[np.argmax(tau_l)-2000]#
+# ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
+
+# dtau = np.abs(tau_l-0.4)
+# ind = np.argmin(dtau)
+# ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
+
+delta = 0.01
+sub_dc = np.arange(dc_l.min(), dc_l.max(), delta)
+sub_dv = np.arange(dv_l.min(), dv_l.max(), delta)
+print('boo1')
+
+n_sub = np.minimum(sub_dc.size, sub_dv.size)
+print('boo')
+dc_subbed, dv_subbed = [], []
+for j in range(n_sub):
+    print(j)
+    dc_0, dv_0 = sub_dc[j], sub_dv[j]
+    ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
+    dc_subbed.append(dc_l[ind])
+    dv_subbed.append(dv_l[ind])
+
+ax.scatter(dc_subbed, dv_subbed, c='k', s=20)
+
+# ax.scatter(dc_0, dv_0, c='b', s=20)
+
+# for j in range(n_sub):
+#     dc_0, dv_0 = np.repeat(sub[j], 2)
+#     ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
+#     print(dc_l[ind], dv_l[ind])
+#     ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
+
+
 # plt.savefig('../plots/test/new_paper_plots/tau_diff.png', bbox_inches='tight', dpi=150)
 # plt.savefig('../plots/test/new_paper_plots/tau_diff_pre_sc_gauss.pdf', bbox_inches='tight', dpi=300)
 # plt.savefig('../plots/test/new_paper_plots/tau_diff_post_sc_gauss.pdf', bbox_inches='tight', dpi=300)

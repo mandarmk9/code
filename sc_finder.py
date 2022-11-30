@@ -9,7 +9,9 @@ from matplotlib.pyplot import cm
 os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
 # path = 'cosmo_sim_1d/sim_k_1_7/run1/'
-path = 'cosmo_sim_1d/another_sim_k_1_11/run1/'
+# path = 'cosmo_sim_1d/another_sim_k_1_11/run1/'
+path = 'cosmo_sim_1d/new_sim_k_1_11/run1/'
+
 # path = 'cosmo_sim_1d/final_sim_k_1_11/run1/'
 
 # path = 'cosmo_sim_1d/sim_k_1_15/run1/'
