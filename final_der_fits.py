@@ -4,7 +4,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from functions import read_sim_data, param_calc_ens, sub_find
+from functions import read_sim_data, param_calc_ens
 os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
 path = 'cosmo_sim_1d/sim_k_1_11/run1/'
@@ -14,10 +14,10 @@ kind_txt = 'sharp cutoff'
 # kind = 'gaussian'
 # kind_txt = 'Gaussian smoothing'
 
-j = 10
+j = 15
 a, x, d1k, dc_l, dv_l, tau_l, P_nb, P_1l = read_sim_data(path, Lambda, kind, j)
 dv_l *= -np.sqrt(a) / 100
-# tau_l -= np.mean(tau_l)
+tau_l -= np.mean(tau_l)
 
 
 def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
@@ -47,7 +47,9 @@ def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
         v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
         v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
         dc_0, dv_0 = dc_l[ind], dv_l[ind]
-        C_ = [(tau_l[ind]-dtau1*dc_0+(dtau1_o2*dc_0**2)/2), dtau1-(dtau1_o2*dc_0), dtau1_o2/2]
+        C_ = [((tau_l[ind])-(dtau1*dc_0)+((dtau1_o2*dc_0**2)/2)), dtau1-(dtau1_o2*dc_0), dtau1_o2/2]
+        # C_ = [(tau_l[ind]), dtau1, dtau1_o2/2]
+
         params_list.append(C_)
 
     params_list = np.array(params_list)
@@ -58,15 +60,205 @@ def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
     C_ = [C0_, C1_, C2_]
     return C_
 
-dist = 1000
+fig, ax = plt.subplots()
+dist = 50
+n_sub = 100
 C_list = []
-# sub = sub_find(n_sub, dc_l.size)
-
-# # n_sub = 5
-X = 40
-delta = 0.01
-sub = np.arange(dc_l.min()/2.5, dc_l.max()/2.5, delta)
+# j = 4
+start, thresh = [8000, 2004]
+N = x.size
+sub = np.linspace(start, N-start+1, n_sub, dtype=int)
+del_ind = np.argmax(tau_l)
+for point in sub:
+    if del_ind-thresh < point < del_ind+thresh:
+        sub = np.delete(sub, np.where(sub==point)[0][0])
+    else:
+        pass
 n_sub = sub.size
+# delta = 0.0001
+# fac = 2
+# sub_dc = np.arange(dc_l.min()/fac, dc_l.max()/fac, delta)
+# sub_dv = np.arange(dv_l.min()/fac, dv_l.max()/fac, delta)
+# n_sub = np.minimum(sub_dc.size, sub_dv.size)
+
+for j in range(n_sub):
+    # dc_0, dv_0 = sub_dc[j], sub_dv[j]
+    # ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
+    tau_val = tau_l[sub[j]]
+    tau_diff = np.abs(tau_l - tau_val)
+    ind_tau = np.argmin(tau_diff)
+    dc_0, dv_0 = dc_l[ind_tau], dv_l[ind_tau]
+    ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
+    C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+    C_list.append(C_)
+    ax.scatter(x[sub[j]], tau_l[sub[j]], color='seagreen', s=20)
+    # ax.scatter(x[ind], tau_l[ind], color='seagreen', s=20)
+
+guesses = 1, 1, 1
+
+def fitting_function(X, a0, a1, a2):
+    x1 = X
+    return a0 + a1*x1 + a2*(x1**2)
+C, cov = curve_fit(fitting_function, (dc_l), tau_l, guesses, sigma=np.ones(dc_l.size), method='lm', absolute_sigma=True)
+
+
+fit = C[0] + C[1]*dc_l + C[2]*dc_l**2
+
+C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
+C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
+C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
+C_ = [C0_, C1_, C2_]
+fit2 = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+
+print(C)
+print(C_)
+print(sum((tau_l - fit)**2))
+print(sum((tau_l - fit2)**2))
+
+
+def calc_fit(params, dc_l, dv_l, tau_l):
+    start, thresh = params
+    dist = 50
+    n_sub = 100
+    C_list = []
+    N = dc_l.size
+    sub = np.linspace(start, N-start+1, n_sub, dtype=int)
+    del_ind = np.argmax(tau_l)
+    for point in sub:
+        if del_ind-thresh < point < del_ind+thresh:
+            sub = np.delete(sub, np.where(sub==point)[0][0])
+        else:
+            pass
+    n_sub = sub.size
+
+    for j in range(n_sub):
+        tau_val = tau_l[sub[j]]
+        tau_diff = np.abs(tau_l - tau_val)
+        ind_tau = np.argmin(tau_diff)
+        dc_0, dv_0 = dc_l[ind_tau], dv_l[ind_tau]
+        ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
+        C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+        C_list.append(C_)
+
+    C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
+    C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
+    C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
+    C_ = [C0_, C1_, C2_]
+    fit = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+
+    return C_, fit
+
+# C_, l = calc_fit((start,thresh), dc_l, dv_l, tau_l)
+# fit2 = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+
+ax.plot(x, tau_l, c='b')
+ax.plot(x, fit, c='k', ls='dashdot')
+ax.plot(x, fit2, c='r', ls='dashed')
+
+plt.savefig('../plots/test/new_paper_plots/test.png', bbox_inches='tight', dpi=150)
+plt.close()
+# plt.show()
+
+# guesses = 1, 1, 1
+#
+# def fitting_function(X, a0, a1, a2):
+#     x1 = X
+#     return a0 + a1*x1 + a2*(x1**2)
+# C, cov = curve_fit(fitting_function, (dc_l), tau_l, guesses, sigma=np.ones(dc_l.size), method='lm', absolute_sigma=True)
+#
+#
+# fit = C[0] + C[1]*dc_l + C[2]*dc_l**2
+#
+# print('C0_deriv = ', C_[0], 'C0_fit = ', C[0])
+# print('C1_deriv = ', C_[1], 'C1_fit = ', C[1])
+# print('C2_deriv = ', C_[2], 'C2_fit = ', C[2])
+# fit2 = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+#
+# plt.rcParams.update({"text.usetex": True})
+# plt.rcParams.update({"font.family": "serif"})
+# fig, ax = plt.subplots()
+# ax.minorticks_on()
+# ax.tick_params(axis='both', which='both', direction='in', labelsize=15)
+# ax.yaxis.set_ticks_position('both')
+# # ax.set_ylabel(r'$\left<[\tau]_{\Lambda}\right>\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
+# ax.set_ylabel(r'$[\tau]_{\Lambda}\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
+#
+# ax.set_xlabel(r'$x\;[h^{-1}\;\mathrm{Mpc}]$', fontsize=20)
+# ax.set_title(r'$a ={}, \Lambda = {} \;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(np.round(a,3), int(Lambda/(2*np.pi)), kind_txt), fontsize=16, y=1.01)
+#
+# plt.plot(x, tau_l, c='b', label=r'measured')
+# plt.plot(x, fit, c='r', ls='dashed', label='fit')
+# plt.plot(x, fit2, c='k', ls='dashed', label='using derivatives')
+# # plt.plot(x, fit3, c='cyan', ls='dotted', label='using derivatives 2')
+#
+# point = ind #sub[j]
+# plt.scatter(x[point], tau_l[point], color='seagreen', s=20)
+#
+# # for point in sub:
+# #     plt.scatter(x[point], tau_l[point], color='seagreen', s=20)
+#
+# # plt.plot(x, est, c='k', ls='dashed', label='using derivatives')
+# plt.legend(fontsize=14, bbox_to_anchor=(1, 1))
+# # plt.show()
+# plt.savefig('../plots/test/new_paper_plots/test.png'.format(kind), bbox_inches='tight', dpi=150)
+# plt.close()
+# # plt.close()
+
+
+
+# C_list = []
+# # sub = sub_find(n_sub, dc_l.size)
+#
+# # # n_sub = 5
+# X = 40
+# delta = 0.01
+# sub = np.arange(dc_l.min()/2.5, dc_l.max()/2.5, delta)
+# n_sub = sub.size
+#
+# delta = 0.001
+# sub_dc = np.arange(dc_l.min(), dc_l.max(), delta)
+# sub_dv = np.arange(dv_l.min(), dv_l.max(), delta)
+# n_sub = np.minimum(sub_dc.size, sub_dv.size)
+#
+# # for j in range(n_sub):
+# #     print(j)
+# #     ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
+#
+# # j = 0
+# fits, fits_fit = [], []
+# for j in range(2, n_sub-2):
+#     # dc_0, dv_0 = np.repeat(sub[j], 2)
+#     dc_0, dv_0 = sub_dc[j], sub_dv[j]
+#     ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
+#     C_list.append(new_param_calc(dc_l, dv_l, tau_l, dist, ind))
+#
+# guesses = 1, 1, 1
+#
+# def fitting_function(X, a0, a1, a2):
+#     x1 = X
+#     return a0 + a1*x1 + a2*(x1**2)
+# C, cov = curve_fit(fitting_function, (dc_l), tau_l, guesses, sigma=np.ones(dc_l.size), method='lm', absolute_sigma=True)
+#
+#
+# fit = C[0] + C[1]*dc_l + C[2]*dc_l**2
+#
+# C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
+# C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
+# C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
+# C_ = [C0_, C1_, C2_]
+# fit2 = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+#
+# print(C)
+# print(C_)
+#
+# plt.plot(x, tau_l, c='b')
+# plt.plot(x, fit, c='k', ls='dashdot')
+# plt.plot(x, fit2, c='r', ls='dashed')
+# plt.savefig('../plots/test/new_paper_plots/der_fits.png', bbox_inches='tight', dpi=150)
+# plt.close()
+# # plt.show()
+
+
 # sub = [np.where(dc_l == points[j])[0] for j in range(points.size)]
 # n_sub = len(sub)
 
@@ -96,21 +288,6 @@ n_sub = sub.size
 # sub = [2500, 12500, 20000, 30000, 40000, 50000]#[ind_0-5000, ind_0, ind_peak-500]
 # n_sub = len(sub)
 
-delta = 0.0075
-sub_dc = np.arange(dc_l.min(), dc_l.max(), delta)
-sub_dv = np.arange(dv_l.min(), dv_l.max(), delta)
-n_sub = np.minimum(sub_dc.size, sub_dv.size)
-
-# for j in range(n_sub):
-#     print(j)
-#     ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
-
-# j = 0
-fits, fits_fit = [], []
-for j in range(2, n_sub-2):
-    # dc_0, dv_0 = np.repeat(sub[j], 2)
-    dc_0, dv_0 = sub_dc[j], sub_dv[j]
-    ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
 
     # tau_val = tau_l[sub[j]]
     # # print(tau_val)
@@ -119,7 +296,6 @@ for j in range(2, n_sub-2):
     # dc_0, dv_0 = dc_l[ind_tau], dv_l[ind_tau]
     # ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
     # C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
-    C_list.append(new_param_calc(dc_l, dv_l, tau_l, dist, ind))
 
     # guesses = 1, 1, 1
     #
@@ -171,26 +347,3 @@ for j in range(2, n_sub-2):
 
 # fit2 = sum(np.array(fits)) / len(fits)
 # fit = sum(np.array(fits_fit)) / len(fits_fit)
-
-guesses = 1, 1, 1
-
-def fitting_function(X, a0, a1, a2):
-    x1 = X
-    return a0 + a1*x1 + a2*(x1**2)
-C, cov = curve_fit(fitting_function, (dc_l), tau_l, guesses, sigma=np.ones(dc_l.size), method='lm', absolute_sigma=True)
-
-
-fit = C[0] + C[1]*dc_l + C[2]*dc_l**2
-
-C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
-C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
-C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
-C_ = [C0_, C1_, C2_]
-fit2 = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
-
-
-print(C_)
-plt.plot(x, tau_l, c='b')
-plt.plot(x, fit, c='k', ls='dashdot')
-plt.plot(x, fit2, c='r', ls='dashed')
-plt.show()

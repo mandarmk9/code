@@ -334,8 +334,6 @@ obj = ax.scatter(dc_l, dv_l, c=del_tau, s=20, cmap='rainbow', rasterized=True)#,
 # ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
 # ax.scatter(dc_l[ind+j], dv_l[ind+j], c='k', s=20)
 
-
-
 cbar = fig.colorbar(obj, ax=ax)
 cbar.ax.set_ylabel(r'$[\tau]_{\Lambda}$', fontsize=18)
 # cbar.ax.set_ylabel(r'$\Delta[\tau]_{\Lambda}\; [\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=18)

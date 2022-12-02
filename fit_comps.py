@@ -3,7 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from functions import *#read_sim_data, spectral_calc, AIC, BIC, binning
+from functions import * #read_sim_data, spectral_calc, AIC, BIC, binning
 import os
 os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
@@ -37,9 +37,13 @@ for npars in pars_list:
     # print('npars = {}'.format(npars))
     fits.append(fit_list)
     aics.append(aic_list)
-
     # a, x, tau_l, dc_l, dv_l, taus, dels, thes, delsq, thesq, delthe, yerr, aic, bic, fit_sp, fit, cov, C, x_binned
 
+fde = []
+for j in file_nums:
+    dc_l, dv_l, tau_l = read_sim_data(path, Lambda, kind, j)[3:6]
+    C_ = deriv_param_calc(dc_l, dv_l, tau_l)[0]
+    fde.append(C_[0] + C_[1]*dc_l + C_[2]*dc_l**2)
 
 plt.rcParams.update({"text.usetex": True})
 plt.rcParams.update({"font.family": "serif"})
@@ -54,7 +58,11 @@ ax[2].yaxis.set_label_position('right')
 ax[1].set_xlabel(r'$x\;[h^{-1}\;\mathrm{Mpc}]$', fontsize=20)
 for j in range(3):
     ax[j].set_title(r'$a = {}$'.format(np.round(a_list[j], 3)), x=0.15, y=0.9, fontsize=18)
-    ax[j].plot(x, tau_list[j], c='b', lw=1.5, label=r'$\left<[\tau]_{\Lambda}\right>$')
+    # ax[j].plot(x, tau_list[j], c='b', lw=1.5, label=r'$\left<[\tau]_{\Lambda}\right>$')
+    ax[j].plot(x, tau_list[j], c='b', lw=1.5, label=r'$[\tau]_{\Lambda}$')
+    ax[j].plot(x, fde[j], c='cyan', lw=1.5, label=r'FDE')
+
+
 
     colors = iter(['k', 'r', 'seagreen', 'cyan'])
 

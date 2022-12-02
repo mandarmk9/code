@@ -50,19 +50,19 @@ def SPT(dc_in, L, a):
 # path = 'cosmo_sim_1d/amp_ratio_test/run1/'
 # A = [-0.1, 1, -0.5, 11]
 
-path = 'cosmo_sim_1d/new_sim_k_1_11/run1/'
-A = [-0.1, 1, -0.5, 11]
+# path = 'cosmo_sim_1d/new_sim_k_1_11/run1/'
+# A = [-0.1, 1, -0.5, 11]
 
-# path = 'cosmo_sim_1d/sim_k_1_11/run1/'
-# A = [-0.05, 1, -0.5, 11]
+path = 'cosmo_sim_1d/sim_k_1_11/run1/'
+A = [-0.05, 1, -0.5, 11]
 
 
 # path = 'cosmo_sim_1d/test_run2/'
 # A = [-0.05, 1, -0.5, 11]
 
 
-Nfiles = 33
-mode = 1
+Nfiles = 51
+mode = 2
 sm = False
 Lambda = 3 * (2 * np.pi)
 kind = 'sharp'
@@ -138,7 +138,9 @@ print((P_nb - P_1l) * 100 / P_nb)
 # print(P_zel.size)
 # #for plotting the spectra
 xaxis = a_list
-yaxes = [P_nb * 1e4 / a_list**2, P_1l * 1e4 / a_list**2]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_zel**2]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_list**2]# / a_list**2]
+# yaxes = [P_nb * 1e4 / a_list**2, P_1l * 1e4 / a_list**2]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_zel**2]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_list**2]# / a_list**2]
+yaxes = [P_nb * 1e4, P_1l * 1e4]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_zel**2]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_list**2]# / a_list**2]
+
 colours = ['b', 'brown', 'r', 'k', 'magenta']#, 'k']
 
 linestyles = ['solid', 'dashdot', 'dashdot', 'dashed']#, 'dashed', 'dashdot']
@@ -158,7 +160,9 @@ else:
 
 
 xlabel = r'$a$'
-ylabel = r'$a^{-2}P(k, a) \times 10^{4}\;\;[h^{-2}\mathrm{Mpc}^{2}]$'
+# ylabel = r'$a^{-2}P(k, a) \times 10^{4}\;\;[h^{-2}\mathrm{Mpc}^{2}]$'
+ylabel = r'$P(k, a) \times 10^{4}\;\;[h^{-2}\mathrm{Mpc}^{2}]$'
+
 errors = [(yaxis - yaxes[0]) * 100 / yaxes[0] for yaxis in yaxes[:-2]]
 # err_zel = (P_zel - P_nb[:int(P_zel.size)]) * 100 / P_nb[:int(P_zel.size)]
 # errors.append(err_zel)

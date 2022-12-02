@@ -6,7 +6,7 @@ import os
 import warnings
 warnings.filterwarnings("error")
 import matplotlib.pyplot as plt
-from scipy.optimize import fsolve, curve_fit
+from scipy.optimize import fsolve, curve_fit, minimize
 from scipy.interpolate import interp1d, interp2d, griddata
 from scipy.integrate import simpson
 from lmfit import Minimizer, Parameters, report_fit
@@ -1115,121 +1115,93 @@ def read_sim_data(path, Lambda, kind, j, folder_name=''):
         return a, tau_l
 
 def param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name='', fitting_method='curve_fit', nbins_x=10, nbins_y=10, npars=3):
-    a, x, d1k, dc_l, dv_l, tau_l_0, P_nb, P_1l = read_sim_data(path, Lambda, kind, j, folder_name)
+    a, x, d1k, dc_l, dv_l, tau_l, P_nb, P_1l = read_sim_data(path, Lambda, kind, j, folder_name)
 
+    taus = []
     if fitting_method == 'curve_fit':
-        taus = []
-        taus.append(tau_l_0)
-        for run in range(2, n_runs+1):
-            if run > 10:
-                ind = -3
-            else:
-                ind = -2
-            path = path[:ind] + '{}/'.format(run)
-            taus.append(read_sim_data(path, Lambda, kind, j, folder_name)[1])
-
-        taus = np.array(taus)
-        Nt = len(taus)
-
-        tau_l = sum(np.array(taus)) / Nt
-
         rho_0 = 27.755
         rho_b = rho_0 / a**3
         H0 = 100
 
-        diff = np.array([(taus[i] - tau_l)**2 for i in range(1, Nt)])
-        yerr = np.sqrt(sum(diff) / (Nt*(Nt-1)))
+        # yerr = np.sqrt(sum(diff) / (Nt*(Nt-1)))
 
-        def fitting_function(X, a0, a1, a2):
-            x1, x2 = X
-            return a0 + a1*x1 + a2*x2
+        n_ev = x.size // 20
+        dc_l_sp = dc_l[0::n_ev]
+        dv_l_sp = dv_l[0::n_ev]
+        tau_l_sp = tau_l[0::n_ev]
+        # yerr_sp = yerr[0::n_ev]
+        x_sp = x[0::n_ev]
 
-        n_fits = 100
-        FF = []
-        for j in range(n_fits):
-            sub = sub_find(n_use, x.size)
-            dc_l_sp = np.array([dc_l[j] for j in sub])
-            dv_l_sp = np.array([dv_l[j] for j in sub])
-            tau_l_sp = np.array([tau_l[j] for j in sub])
-            x_sp = np.array([x[j] for j in sub])
-            taus_sp = np.array([np.array([taus[k][j] for j in sub]) for k in range(n_runs)])
-            diff = np.array([(taus_sp[i] - tau_l_sp)**2 for i in range(1, Nt)])
-            yerr_sp = np.sqrt(sum(diff) / (Nt-1))
+        # # def fitting_function(X, a0, a1, a2):
+        # #     x1, x2 = X
+        # #     return a0 + a1*x1 + a2*x2
+        #
+        # def fitting_function(X, a0, a1, a2):
+        #     x1, x2 = X
+        #     return a0 + a1*x1 + a2*x2 + a3*(x1**2) + a4*(x2**2) + a5*(x1*x2)
+        # C, cov = curve_fit(fitting_function, (dc_l_sp, dv_l_sp), tau_l_sp, guesses, sigma=yerr_sp, method='lm', absolute_sigma=True)
+        #
+        # fit = fitting_function((dc_l, dv_l), C0, C1, C2)
+        # fit_sp = fit[0::n_ev]
 
-            cov_mat = np.empty(shape=(n_use, n_use))
-            for i in range(n_use):
-                for j in range(n_use):
-                    tau_k_i = np.array([taus_sp[k][i] for k in range(n_runs)])
-                    tau_k_j = np.array([taus_sp[k][j] for k in range(n_runs)])
-                    # cov = np.cov(tau_k_i, tau_k_j, ddof=1)
-                    cov_mat[i][j] = sum(np.array((tau_k_i - (sum(tau_k_i) / n_runs)) * (tau_k_j - (sum(tau_k_j) / n_runs)))) / (n_runs-1)
+        if npars == 3:
+            def fitting_function(X, a0, a1, a2):
+                x1, x2 = X
+                return a0 + a1*x1 + a2*x2
 
-            # print(np.linalg.eig(cov_mat))
-            guesses = 1, 1, 1
-            # sol = curve_fit(fitting_function, (dc_l_sp, dv_l_sp), tau_l_sp, guesses, sigma=yerr_sp, method='lm', absolute_sigma=True)
-            sol = curve_fit(fitting_function, (dc_l_sp, dv_l_sp), tau_l_sp, guesses, sigma=cov_mat, method='lm', absolute_sigma=True)
-            FF.append(sol)
+            guesses = 1, 1, 1 #, 1, 1, 1
+            C, cov = curve_fit(fitting_function, (dc_l_sp, dv_l_sp), tau_l_sp, guesses, sigma=None, method='lm', absolute_sigma=True)
 
-
-        C0 = np.median([FF[k][0][0] for k in range(n_fits)])
-        C1 = np.median([FF[k][0][1] for k in range(n_fits)])
-        C2 = np.median([FF[k][0][2] for k in range(n_fits)])
-
-        # C0 = np.mean([FF[k][0][0] for k in range(n_fits)])
-        # C1 = np.mean([FF[k][0][1] for k in range(n_fits)])
-        # C2 = np.mean([FF[k][0][2] for k in range(n_fits)])
-
-        C = [C0, C1, C2]
-
-        cov = np.zeros(shape=(3,3)) #np.sqrt((sum([(FF[k][1])**2 for k in range(n_fits)])) / n_fits)
-        for i in range(3):
-            for j in range(3):
-                cov[i][j] = np.median([FF[k][1][i][j] for k in range(n_fits)]) #np.sqrt((sum([(FF[k][1])**2 for k in range(n_fits)])) / n_fits)
-                # cov[i][j] = np.mean([FF[k][1][i][j] for k in range(n_fits)]) #np.sqrt((sum([(FF[k][1])**2 for k in range(n_fits)])) / n_fits)
-
-
-        fit = fitting_function((dc_l, dv_l), C0, C1, C2)
-        if len(sub) == 0:
+            fit = fitting_function((dc_l, dv_l), C[0], C[1], C[2])#, C[3], C[4], C[5])
             fit_sp = fit[0::n_ev]
-        else:
-            fit_sp = np.array([fit[j] for j in sub])
+
+        elif npars == 6:
+            def fitting_function(X, a0, a1, a2, a3, a4, a5):
+                x1, x2 = X
+                return a0 + a1*x1 + a2*x2 + a3*x1**2 + a4*x2**2 + a5*x1*x2
+
+            guesses = 1, 1, 1, 1, 1, 1
+            C, cov = curve_fit(fitting_function, (dc_l_sp, dv_l_sp), tau_l_sp, guesses, sigma=None, method='lm', absolute_sigma=True)
+            fit = fitting_function((dc_l, dv_l), C[0], C[1], C[2], C[3], C[4], C[5])
+            fit_sp = fit[0::n_ev]
+
 
         resid = fit_sp - tau_l_sp
-        # chisq = sum((resid / yerr_sp)**2)
-        chisq = np.dot(resid.T, np.dot(np.linalg.inv(cov_mat), resid))
-        red_chi = chisq / (n_use - 3)
+        chisq = 1#sum((resid / yerr_sp)**2)
+        red_chi = 1#chisq / (n_use - 3)
+        yerr = 0
 
-        cs2 = np.real(C1 / rho_b)
-        cv2 = -np.real(C2 * H0 / (rho_b * np.sqrt(a)))
+        cs2 = np.real(C[1] / rho_b)
+        cv2 = -np.real(C[2] * H0 / (rho_b * np.sqrt(a)))
         ctot2 = (cs2 + cv2)
 
         f1 = (1 / rho_b)
         f2 = (-H0 / (rho_b * np.sqrt(a)))
 
-        cov[0,1] *= f1
-        cov[1,0] *= f1
-        cov[0,2] *= f2
-        cov[2,0] *= f2
-        cov[1,1] *= f1**2
-        cov[2,2] *= f2**2
-        cov[2,1] *= f2*f1
-        cov[1,2] *= f1*f2
+        # cov[0,1] *= f1
+        # cov[1,0] *= f1
+        # cov[0,2] *= f2
+        # cov[2,0] *= f2
+        # cov[1,1] *= f1**2
+        # cov[2,2] *= f2**2
+        # cov[2,1] *= f2*f1
+        # cov[1,2] *= f1*f2
+        #
+        # corr = np.zeros(cov.shape)
+        #
+        # for i in range(3):
+        #     for j in range(3):
+        #         corr[i,j] = cov[i,j] / np.sqrt(cov[i,i]*cov[j,j])
 
-        corr = np.zeros(cov.shape)
-
-        for i in range(3):
-            for j in range(3):
-                corr[i,j] = cov[i,j] / np.sqrt(cov[i,i]*cov[j,j])
-
-        err0, err1, err2 = np.sqrt(np.diag(cov))
+        err0, err1, err2 = np.sqrt(np.diag(cov))[:3]
 
         ctot2 = (cs2 + cv2)
 
-        try:
-            terr = np.sqrt(err1**2 + err2**2 + corr[1,2]*err1*err2 + corr[2,1]*err2*err1)
-        except:
-            # print('boo')
-            terr = 0
+        # try:
+        #     terr = np.sqrt(err1**2 + err2**2 + corr[1,2]*err1*err2 + corr[2,1]*err2*err1)
+        # except:
+        #     # print('boo')
+        terr = 0
 
         x_binned = None
 
@@ -1350,9 +1322,10 @@ def param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name=''
 
     ctot2_3 = np.real(Power_fou(tau_l/rho_b, dc_l) / Power_fou(dc_l, T))
 
-    ctot2_4 = deriv_param_calc(dc_l, dv_l, tau_l)[1] / rho_b
-
-    return a, x, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, tau_l, fit, terr, P_nb, P_1l, d1k, taus, x_binned, chisq, ctot2_4
+    sol_deriv = deriv_param_calc(dc_l, dv_l, tau_l)
+    ctot2_4 = sol_deriv[0][1] / rho_b
+    err_4 = sol_deriv[1][1] / rho_b
+    return a, x, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, tau_l, fit, terr, P_nb, P_1l, d1k, taus, x_binned, chisq, ctot2_4, err_4
     # return a, pos, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, taus, fit_sp, terr, P_nb, P_1l, d1k
 
 
@@ -1759,35 +1732,35 @@ def read_hier(path, j):
 
 
 def deriv_param_calc(dc_l, dv_l, tau_l):
-    def dir_der_o1(X, tau_l, ind):
-        """Calculates the first-order directional derivative of tau_l along the vector X."""
-        x1 = np.array([X[0][ind], X[1][ind]])
-        x2 = np.array([X[0][ind+1], X[1][ind+1]])
-        v = (x2 - x1)
-        D_v_tau = (tau_l[ind+1] - tau_l[ind]) / v[0]
-        return v, D_v_tau
-
-    def dir_der_o2(X, tau_l, ind):
-        """Calculates the second-order directional derivative of tau_l along the vector X."""
-        #calculate the first-order directional derivatives at two different points
-        v0, D_v_tau0 = dir_der_o1(X, tau_l, ind-2)
-        v1, D_v_tau1 = dir_der_o1(X, tau_l, ind)
-        v2, D_v_tau2 = dir_der_o1(X, tau_l, ind+2)
-        x0 = np.array([X[0][ind-2], X[1][ind-2]])
-        x1 = np.array([X[0][ind], X[1][ind]])
-        x2 = np.array([X[0][ind+2], X[1][ind+2]])
-        v = (x2 - x1)
-        D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
-        return v, D2_v_tau
-
     def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
+        def dir_der_o1(X, tau_l, ind):
+            """Calculates the first-order directional derivative of tau_l along the vector X."""
+            x1 = np.array([X[0][ind], X[1][ind]])
+            x2 = np.array([X[0][ind+1], X[1][ind+1]])
+            v = (x2 - x1)
+            D_v_tau = (tau_l[ind+1] - tau_l[ind]) / v[0]
+            return v, D_v_tau
+
+        def dir_der_o2(X, tau_l, ind):
+            """Calculates the second-order directional derivative of tau_l along the vector X."""
+            v0, D_v_tau0 = dir_der_o1(X, tau_l, ind-2)
+            v1, D_v_tau1 = dir_der_o1(X, tau_l, ind)
+            v2, D_v_tau2 = dir_der_o1(X, tau_l, ind+2)
+            x0 = np.array([X[0][ind-2], X[1][ind-2]])
+            x1 = np.array([X[0][ind], X[1][ind]])
+            x2 = np.array([X[0][ind+2], X[1][ind+2]])
+            v = (x2 - x1)
+            D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
+            return v, D2_v_tau
+
         X = np.array([dc_l, dv_l])
-        j = 0
         params_list = []
         for j in range(-dist//2, dist//2 + 1):
             v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
             v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
-            C_ = [tau_l[ind], dtau1, dtau1_o2/2]
+            dc_0, dv_0 = dc_l[ind], dv_l[ind]
+            C_ = [((tau_l[ind])-(dtau1*dc_0)+((dtau1_o2*dc_0**2)/2)), dtau1-(dtau1_o2*dc_0), dtau1_o2/2]
+            # C_ = [(tau_l[ind]), dtau1, dtau1_o2/2]
             params_list.append(C_)
 
 
@@ -1799,26 +1772,155 @@ def deriv_param_calc(dc_l, dv_l, tau_l):
         C_ = [C0_, C1_, C2_]
         return C_
 
-    dist = 50
-    # params_list = []
-    # inds = []
-    # ind = np.argmin(dc_l**2 + dv_l**2)
-    # n_points = 40
-    # for gap in range(n_points):
-    #     gap *= dc_l.size//n_points
-    #     inds.append(int(ind-gap))
-    #
-    #
-    # for ind in inds:
-    #     C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
-    #     params_list.append(C_)
-    #
-    # C0_ = np.mean([params_list[j][0] for j in range(len(params_list))])
-    # C1_ = np.mean([params_list[j][1] for j in range(len(params_list))])
-    # C2_ = np.mean([params_list[j][2] for j in range(len(params_list))])
 
-    ind = np.argmin(dc_l**2 + dv_l**2)
-    C0_, C1_, C2_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+    def minimise_deriv(params, dc_l, dv_l, tau_l):
+        start, thresh = params
+        N = dc_l.size
+        if start < 0:
+            start = N + start
+        dist = 10
+        n_sub = 50
+        C_list = []
+        sub = np.linspace(start, N-start+1, n_sub, dtype=int)
+        del_ind = np.argmax(tau_l)
+        for point in sub:
+            if del_ind-thresh < point < del_ind+thresh:
+                sub = np.delete(sub, np.where(sub==point)[0][0])
+            else:
+                pass
+        n_sub = sub.size
 
-    C_ = [C0_, C1_, C2_]
-    return C_
+        for j in range(n_sub):
+            tau_val = tau_l[sub[j]]
+            tau_diff = np.abs(tau_l - tau_val)
+            ind_tau = np.argmin(tau_diff)
+            dc_0, dv_0 = dc_l[ind_tau], dv_l[ind_tau]
+            ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
+            C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+            C_list.append(C_)
+
+        # C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
+        # C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
+        # C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
+
+        try:
+            C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
+            C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
+            C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
+        except:
+            C0_ = 0
+            C1_ = 10
+            C2_ = 0
+
+        C_ = [C0_, C1_, C2_]
+        fit = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+
+        resid = sum((tau_l - fit)**2)
+        return resid
+
+    x0 = (8000, 8000)
+    sol = minimize(minimise_deriv, x0, args=(dc_l, dv_l, tau_l), bounds=[(3000, 15000), (3000, 15000)], method='Powell')
+
+    sol_params = sol.x
+    def calc_fit(params, dc_l, dv_l, tau_l):
+        start, thresh = params
+        dist = 10
+        n_sub = 100
+        C_list = []
+        N = dc_l.size
+        sub = np.linspace(start, N-start+1, n_sub, dtype=int)
+        del_ind = np.argmax(tau_l)
+        for point in sub:
+            if del_ind-thresh < point < del_ind+thresh:
+                sub = np.delete(sub, np.where(sub==point)[0][0])
+            else:
+                pass
+        n_sub = sub.size
+
+        for j in range(n_sub):
+            tau_val = tau_l[sub[j]]
+            tau_diff = np.abs(tau_l - tau_val)
+            ind_tau = np.argmin(tau_diff)
+            dc_0, dv_0 = dc_l[ind_tau], dv_l[ind_tau]
+            ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
+            C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+            C_list.append(C_)
+
+        C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
+        C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
+        C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
+        err0_ = np.sqrt(sum([((C_list[l][0] - C0_)**2/(n_sub*(n_sub-1))) for l in range(len(C_list))]))
+        err1_ = np.sqrt(sum([((C_list[l][1] - C0_)**2/(n_sub*(n_sub-1))) for l in range(len(C_list))]))
+        err2_ = np.sqrt(sum([((C_list[l][2] - C0_)**2/(n_sub*(n_sub-1))) for l in range(len(C_list))]))
+        err_ = [err0_, err1_, err2_]
+        C_ = [C0_, C1_, C2_]
+        fit = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+        return C_, err_
+
+    return calc_fit(sol_params, dc_l, dv_l, tau_l)
+
+
+# def deriv_param_calc(dc_l, dv_l, tau_l):
+#     def dir_der_o1(X, tau_l, ind):
+#         """Calculates the first-order directional derivative of tau_l along the vector X."""
+#         x1 = np.array([X[0][ind], X[1][ind]])
+#         x2 = np.array([X[0][ind+1], X[1][ind+1]])
+#         v = (x2 - x1)
+#         D_v_tau = (tau_l[ind+1] - tau_l[ind]) / v[0]
+#         return v, D_v_tau
+#
+#     def dir_der_o2(X, tau_l, ind):
+#         """Calculates the second-order directional derivative of tau_l along the vector X."""
+#         #calculate the first-order directional derivatives at two different points
+#         v0, D_v_tau0 = dir_der_o1(X, tau_l, ind-2)
+#         v1, D_v_tau1 = dir_der_o1(X, tau_l, ind)
+#         v2, D_v_tau2 = dir_der_o1(X, tau_l, ind+2)
+#         x0 = np.array([X[0][ind-2], X[1][ind-2]])
+#         x1 = np.array([X[0][ind], X[1][ind]])
+#         x2 = np.array([X[0][ind+2], X[1][ind+2]])
+#         v = (x2 - x1)
+#         D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
+#         return v, D2_v_tau
+#
+#     def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
+#         X = np.array([dc_l, dv_l])
+#         j = 0
+#         params_list = []
+#         for j in range(-dist//2, dist//2 + 1):
+#             v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
+#             v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
+#             C_ = [tau_l[ind], dtau1, dtau1_o2/2]
+#             params_list.append(C_)
+#
+#
+#         params_list = np.array(params_list)
+#         C0_ = np.mean(np.array([params_list[j][0] for j in range(dist)]))
+#         C1_ = np.mean(np.array([params_list[j][1] for j in range(dist)]))
+#         C2_ = np.mean(np.array([params_list[j][2] for j in range(dist)]))
+#
+#         C_ = [C0_, C1_, C2_]
+#         return C_
+#
+#     dist = 50
+#     # params_list = []
+#     # inds = []
+#     # ind = np.argmin(dc_l**2 + dv_l**2)
+#     # n_points = 40
+#     # for gap in range(n_points):
+#     #     gap *= dc_l.size//n_points
+#     #     inds.append(int(ind-gap))
+#     #
+#     #
+#     # for ind in inds:
+#     #     C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+#     #     params_list.append(C_)
+#     #
+#     # C0_ = np.mean([params_list[j][0] for j in range(len(params_list))])
+#     # C1_ = np.mean([params_list[j][1] for j in range(len(params_list))])
+#     # C2_ = np.mean([params_list[j][2] for j in range(len(params_list))])
+#
+#     ind = np.argmin(dc_l**2 + dv_l**2)
+#     C0_, C1_, C2_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+#
+#     C_ = [C0_, C1_, C2_]
+#     return C_
