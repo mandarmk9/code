@@ -14,7 +14,7 @@ kind_txt = 'sharp cutoff'
 # kind = 'gaussian'
 # kind_txt = 'Gaussian smoothing'
 
-j = 15
+j = 20
 a, x, d1k, dc_l, dv_l, tau_l, P_nb, P_1l = read_sim_data(path, Lambda, kind, j)
 dv_l *= -np.sqrt(a) / 100
 tau_l -= np.mean(tau_l)
@@ -60,12 +60,12 @@ def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
     C_ = [C0_, C1_, C2_]
     return C_
 
-fig, ax = plt.subplots()
+# fig, ax = plt.subplots()
 dist = 50
-n_sub = 100
+n_sub = 1
 C_list = []
 # j = 4
-start, thresh = [8000, 2004]
+start, thresh = [5000, 2000]
 N = x.size
 sub = np.linspace(start, N-start+1, n_sub, dtype=int)
 del_ind = np.argmax(tau_l)
@@ -74,12 +74,17 @@ for point in sub:
         sub = np.delete(sub, np.where(sub==point)[0][0])
     else:
         pass
+
+ind_0 = np.argmin(dc_l**2 + dv_l**2)
+print(tau_l[ind_0])
+sub = np.array([ind_0])#, ind_0-10000])
 n_sub = sub.size
 # delta = 0.0001
 # fac = 2
 # sub_dc = np.arange(dc_l.min()/fac, dc_l.max()/fac, delta)
 # sub_dv = np.arange(dv_l.min()/fac, dv_l.max()/fac, delta)
 # n_sub = np.minimum(sub_dc.size, sub_dv.size)
+
 
 for j in range(n_sub):
     # dc_0, dv_0 = sub_dc[j], sub_dv[j]
@@ -91,7 +96,7 @@ for j in range(n_sub):
     ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
     C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
     C_list.append(C_)
-    ax.scatter(x[sub[j]], tau_l[sub[j]], color='seagreen', s=20)
+    # ax.scatter(x[sub[j]], tau_l[sub[j]], color='seagreen', s=20)
     # ax.scatter(x[ind], tau_l[ind], color='seagreen', s=20)
 
 guesses = 1, 1, 1
@@ -108,18 +113,16 @@ C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
 C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
 C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
 C_ = [C0_, C1_, C2_]
-fit2 = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+fit_fde = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
 
-print(C)
-print(C_)
-print(sum((tau_l - fit)**2))
-print(sum((tau_l - fit2)**2))
+print('from fit: ', C)
+print('from FDE: ', C_)
 
 
 def calc_fit(params, dc_l, dv_l, tau_l):
     start, thresh = params
     dist = 50
-    n_sub = 100
+    n_sub = 1
     C_list = []
     N = dc_l.size
     sub = np.linspace(start, N-start+1, n_sub, dtype=int)
@@ -151,13 +154,28 @@ def calc_fit(params, dc_l, dv_l, tau_l):
 # C_, l = calc_fit((start,thresh), dc_l, dv_l, tau_l)
 # fit2 = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
 
-ax.plot(x, tau_l, c='b')
-ax.plot(x, fit, c='k', ls='dashdot')
-ax.plot(x, fit2, c='r', ls='dashed')
+plt.rcParams.update({"text.usetex": True})
+plt.rcParams.update({"font.family": "serif"})
+fig, ax = plt.subplots()
+ax.minorticks_on()
+ax.tick_params(axis='both', which='both', direction='in', labelsize=15)
+ax.yaxis.set_ticks_position('both')
+# ax.set_ylabel(r'$\left<[\tau]_{\Lambda}\right>\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
+ax.set_ylabel(r'$[\tau]_{\Lambda}\;[\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=22)
 
-plt.savefig('../plots/test/new_paper_plots/test.png', bbox_inches='tight', dpi=150)
-plt.close()
-# plt.show()
+ax.set_xlabel(r'$x\;[h^{-1}\;\mathrm{Mpc}]$', fontsize=20)
+ax.set_title(r'$a ={}, \Lambda = {} \;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(np.round(a,3), int(Lambda/(2*np.pi)), kind_txt), fontsize=16, y=1.01)
+
+plt.plot(x, tau_l, c='b', label=r'measured')
+plt.plot(x, fit, c='r', ls='dashed', label='fit')
+plt.plot(x, fit_fde, c='k', ls='dashed', label='FDE')
+plt.scatter(x[ind], tau_l[ind], s=20, c='seagreen')
+# plt.plot(x, fit3, c='cyan', ls='dotted', label='using derivatives 2')
+
+
+# plt.plot(x, est, c='k', ls='dashed', label='using derivatives')
+plt.legend(fontsize=14, bbox_to_anchor=(1, 1))
+plt.show()
 
 # guesses = 1, 1, 1
 #

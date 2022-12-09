@@ -33,7 +33,7 @@ plots_folder = '/test/new_paper_plots/'
 # plots_folder = '/new_sim_k_1_11/'
 
 
-Nfiles = 51
+Nfiles = 21
 mode = 1
 Lambda = 3 * (2 * np.pi)
 Lambda_int = int(Lambda / (2*np.pi))
@@ -41,7 +41,7 @@ kind = 'sharp'
 kind_txt = 'sharp'# cutoff'
 # kind = 'gaussian'
 # kind_txt = 'Gaussian'# smoothing'
-leg = False
+leg = True
 H0 = 100
 n_use = n_runs-1
 zel = False
@@ -51,49 +51,17 @@ save = True
 # fitting_method = 'WLS'
 # fitting_method = 'lmfit'
 fitting_method = 'curve_fit'
-fitting_method = ''
+# fitting_method = ''
 nbins_x, nbins_y, npars = 15, 15, 6
 
-# # np.random.seed(10)
-# sub = np.random.choice(62500, n_use)
-# print(sub)
-
-# from math import ceil
-#
-# def takespread(n_tot, n_use):
-#     sequence = np.arange(0, n_tot, dtype=int)
-#     length = float(n_tot)
-#     for i in range(n_use):
-#         yield sequence[int(ceil(i * length / n_use))]
-#
-# sub = takespread(62500, 7)
-# print(next(sub))
-
-# f = lambda m, n: [i*n//m + n//(2*m) for i in range(m)]
-# print(f(7, 62500))
-
-# def sub_find(num, N):
-#     seq = np.arange(0, N, dtype=int)
-#     start_ = np.random.choice(seq)
-#     n_ev = N // num
-#     sub = []
-#     for j in range(num):
-#         ind_next = start_ + int(j*n_ev)
-#         if ind_next >= N:
-#             ind_next = ind_next - N
-#         sub.append(ind_next)
-#     sub = list(np.sort(sub))
-#     return sub
-#
-# sub = sub_find(7, 62500)
 
 #for plotting the spectra
 if zel == True:
-    a_list, x, P_nb, P_1l_tr, P_eft_tr, P_eft2_tr, P_eft3_tr, P_eft_fit, P_zel, a_zel, err_Int = spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs, n_use, H0, zel)
-    yaxes = [P_nb / a_list**2, P_1l_tr / a_list**2, P_eft_tr / a_list**2, P_eft2_tr / a_list**2, P_eft3_tr / a_list**2, P_eft_fit / a_list**2, P_zel / a_zel**2]
+    a_list, x, P_nb, P_1l_tr, P_eft_tr, P_eft2_tr, P_eft3_tr, P_eft4_tr, P_eft_fit, P_zel, a_zel, err_Int = spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs, n_use, H0, zel)
+    yaxes = [P_nb / a_list**2, P_1l_tr / a_list**2, P_eft_tr / a_list**2, P_eft2_tr / a_list**2, P_eft3_tr / a_list**2, P_eft4_tr / a_list**2, P_eft_fit / a_list**2, P_zel / a_zel**2]
 else:
-    a_list, x, P_nb, P_1l_tr, P_eft_tr, P_eft2_tr, P_eft3_tr, P_eft_fit, err_Int = spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs, n_use, H0, zel, fitting_method='', nbins_x=nbins_x, nbins_y=nbins_y, npars=npars)
-    yaxes = [P_nb / a_list**2, P_1l_tr / a_list**2, P_eft_tr / a_list**2, P_eft2_tr / a_list**2, P_eft3_tr / a_list**2, P_eft_fit / a_list**2]
+    a_list, x, P_nb, P_1l_tr, P_eft_tr, P_eft2_tr, P_eft3_tr, P_eft4_tr, P_eft_fit, err_Int = spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs, n_use, H0, zel, fitting_method='', nbins_x=nbins_x, nbins_y=nbins_y, npars=npars)
+    yaxes = [P_nb / a_list**2, P_1l_tr / a_list**2, P_eft_tr / a_list**2, P_eft2_tr / a_list**2, P_eft3_tr / a_list**2, P_eft4_tr / a_list**2, P_eft_fit / a_list**2]
 for spec in yaxes:
     spec /= 1e-4
 err_Int /= (1e-4 * a_list**2)
@@ -101,9 +69,9 @@ err_Int /= (1e-4 * a_list**2)
 xaxis = a_list
 a_sc = 0# 1 / np.max(initial_density(x, A, 1))
 
-colours = ['b', 'brown', 'k', 'cyan', 'orange', 'g', 'violet']
-labels = [r'$N$-body', 'tSPT-4', r'EFT: from fit to $\langle[\tau]_{\Lambda}\rangle$',  r'EFT: M\&W', 'EFT: $B^{+12}$', r'EFT: from matching $P_{\mathrm{N-body}}$', 'Zel']
-linestyles = ['solid', 'dashdot', 'dashed',  'dashed', 'dashed', 'dotted', 'dotted']
+colours = ['b', 'brown', 'k', 'cyan', 'orange', 'xkcd:dried blood', 'r', 'seagreen']
+labels = [r'$N$-body', 'tSPT-4', r'EFT: from fit to $\langle[\tau]_{\Lambda}\rangle$',  r'EFT: M\&W', 'EFT: $B^{+12}$', r'EFT: FDE', r'EFT: from matching $P_{\mathrm{N-body}}$', 'Zel']
+linestyles = ['solid', 'dashdot', 'dashed', 'dashed', 'dashed', 'dashed', 'dotted', 'dotted']
 savename = 'eft_spectra_k{}_L{}_{}'.format(mode, int(Lambda/(2*np.pi)), kind)
 xlabel = r'$a$'
 # ylabel = r'$a^{-2}P(k=1, a) \times 10^{4}$'

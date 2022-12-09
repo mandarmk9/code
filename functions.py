@@ -73,7 +73,7 @@ def sub_find(num, N):
 
 def spectral_calc(f, L, o, d):
     """a function to calculate a 1D spectral derivative/integral. o is the order,
-    and d == 0(1) implies derivative(integral)"""
+    and d == 0(1) implies derivative(integral). L is the size of the box."""
 
     N = int(len(f))
     k = np.fft.ifftshift(2.0 * np.pi / L * np.arange(-N/2, N/2))
@@ -842,9 +842,9 @@ def plotter(mode, Lambda, xaxis, yaxes, xlabel, ylabel, colours, labels, linesty
 
 
         if len(terr) != 0:
-            ax[0].fill_between(xaxis, yaxes[2]-terr, yaxes[2]+terr, color='darkslategray', alpha=0.55)
+            ax[0].fill_between(xaxis, yaxes[2]-terr, yaxes[2]+terr, color='darkslategray', alpha=0.35)
             terr_err = terr * 100 / yaxes[0]
-            ax[1].fill_between(xaxis, errors[2]-terr_err, errors[2]+terr_err, color='darkslategray', alpha=0.55)
+            ax[1].fill_between(xaxis, errors[2]-terr_err, errors[2]+terr_err, color='darkslategray', alpha=0.35)
 
 
         for i in range(2):
@@ -1114,7 +1114,7 @@ def read_sim_data(path, Lambda, kind, j, folder_name=''):
         file.close()
         return a, tau_l
 
-def param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name='', fitting_method='curve_fit', nbins_x=10, nbins_y=10, npars=3):
+def param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name='', fitting_method='curve_fit', nbins_x=10, nbins_y=10, npars=3, fde_method='algorithm', per=10):
     a, x, d1k, dc_l, dv_l, tau_l, P_nb, P_1l = read_sim_data(path, Lambda, kind, j, folder_name)
 
     taus = []
@@ -1171,6 +1171,7 @@ def param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name=''
         red_chi = 1#chisq / (n_use - 3)
         yerr = 0
 
+        # print('C1: ', C[1]+C[2])
         cs2 = np.real(C[1] / rho_b)
         cv2 = -np.real(C[2] * H0 / (rho_b * np.sqrt(a)))
         ctot2 = (cs2 + cv2)
@@ -1322,9 +1323,17 @@ def param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, folder_name=''
 
     ctot2_3 = np.real(Power_fou(tau_l/rho_b, dc_l) / Power_fou(dc_l, T))
 
-    sol_deriv = deriv_param_calc(dc_l, dv_l, tau_l)
-    ctot2_4 = sol_deriv[0][1] / rho_b
-    err_4 = sol_deriv[1][1] / rho_b
+    if fde_method == 'algorithm':
+        sol_deriv = deriv_param_calc(dc_l, dv_l, tau_l)
+        ctot2_4 = sol_deriv[0][1] / rho_b
+        err_4 = sol_deriv[1][1] / rho_b
+
+    elif fde_method == 'percentile':
+        sol_deriv = percentile_fde(dc_l, dv_l, tau_l, per)
+        ctot2_4 = sol_deriv[0][1] / rho_b
+        err_4 = sol_deriv[1][1] / rho_b
+    else:
+        raise Exception('fde_method must be \'algorithm\' or \'percentile\'')
     return a, x, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, tau_l, fit, terr, P_nb, P_1l, d1k, taus, x_binned, chisq, ctot2_4, err_4
     # return a, pos, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, taus, fit_sp, terr, P_nb, P_1l, d1k
 
@@ -1347,6 +1356,8 @@ def spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs=8, n_use=6, H0=100
     ctot2_list = np.zeros(Nfiles)
     ctot2_list2 = np.zeros(Nfiles)
     ctot2_list3 = np.zeros(Nfiles)
+    ctot2_list4 = np.zeros(Nfiles)
+
     cs2_list = np.zeros(Nfiles)
     cv2_list = np.zeros(Nfiles)
     fit_list = np.zeros(Nfiles)
@@ -1367,6 +1378,11 @@ def spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs=8, n_use=6, H0=100
     Bn3 = np.zeros(Nfiles)
     Pn3 = np.zeros(Nfiles)
     Qn3 = np.zeros(Nfiles)
+
+    An4 = np.zeros(Nfiles)
+    Bn4 = np.zeros(Nfiles)
+    Pn4 = np.zeros(Nfiles)
+    Qn4 = np.zeros(Nfiles)
 
     err_A = np.zeros(Nfiles)
     err_B = np.zeros(Nfiles)
@@ -1395,11 +1411,12 @@ def spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs=8, n_use=6, H0=100
        ##the following line is to keep track of 'a' for the numerical integration
        if file_num > 0:
           a0 = a
-       a, x, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, tau_l, fit, terr, P_nb_a, P_1l_a_tr, d1k, taus, x_binned, chisq = param_calc_ens(file_num, Lambda, path, A, mode, kind, n_runs, n_use, fitting_method='', nbins_x=nbins_x, nbins_y=nbins_y, npars=npars)
+       a, x, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, tau_l, fit, terr, P_nb_a, P_1l_a_tr, d1k, taus, x_binned, chisq, ctot2_4, err_4 = param_calc_ens(file_num, Lambda, path, A, mode, kind, n_runs, n_use, fitting_method='', nbins_x=nbins_x, nbins_y=nbins_y, npars=npars)
        a_list[file_num] = a
        ctot2_list[file_num] = ctot2
        ctot2_list2[file_num] = ctot2_2
        ctot2_list3[file_num] = ctot2_3
+       ctot2_list4[file_num] = ctot2_4
 
        Nx = x.size
        k = np.fft.ifftshift(2.0 * np.pi * np.arange(-Nx/2, Nx/2))
@@ -1422,9 +1439,15 @@ def spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs=8, n_use=6, H0=100
           Pn3[file_num] = ctot2_3 * (a**(5/2)) #for calculation of alpha_c
           Qn3[file_num] = ctot2_3
 
-          err_A[file_num] = (terr * (a**(5/2)) * da)**2
-          err_B[file_num] = (terr * da)**2
-          print('err_AB = ', err_A[file_num], err_B[file_num])
+          #for α_c using derivatives (FDE)
+          Pn4[file_num] = ctot2_3 * (a**(5/2)) #for calculation of alpha_c
+          Qn4[file_num] = ctot2_3
+
+          # err_A[file_num] = (terr * (a**(5/2)) * da)**2
+          # err_B[file_num] = (terr * da)**2
+          # print('err_AB = ', err_A[file_num], err_B[file_num])
+          err_A[file_num] = (err_4 * (a**(5/2)) * da)**2
+          err_B[file_num] = (err_4 * da)**2
 
        #we now extract the solutions for a specific mode
        P_lin_a = np.real((d1k * np.conj(d1k)) * (a**2))
@@ -1454,6 +1477,9 @@ def spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs=8, n_use=6, H0=100
         An3[j] = np.trapz(Pn3[:j], a_list[:j])
         Bn3[j] = np.trapz(Qn3[:j], a_list[:j])
 
+        An4[j] = np.trapz(Pn4[:j], a_list[:j])
+        Bn4[j] = np.trapz(Qn4[:j], a_list[:j])
+
         # err_A[j] = np.trapz((a_list**(5/2))[:j], a_list[:j])
         # err_B[j] = np.trapz((np.ones(a_list.size))[:j], a_list[:j])
 
@@ -1466,6 +1492,8 @@ def spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs=8, n_use=6, H0=100
     An /= (a_list**(5/2))
     An2 /= (a_list**(5/2))
     An3 /= (a_list**(5/2))
+    An4 /= (a_list**(5/2))
+
 
     # err_A /= a_list**(5/2)
     err_I1 = np.sqrt(err_I1) / a_list**(5/2)
@@ -1478,18 +1506,21 @@ def spec_from_ens(Nfiles, Lambda, path, A, mode, kind, n_runs=8, n_use=6, H0=100
     alpha_c_naive = C * (An - Bn)
     alpha_c_naive2 = C * (An2 - Bn2)
     alpha_c_naive3 = C * (An3 - Bn3)
+    alpha_c_naive4 = C * (An4 - Bn4)
+
 
     P_eft_tr = P_1l_tr + ((2 * alpha_c_naive) * (k[mode]**2) * P_lin)
     P_eft2_tr = P_1l_tr + ((2 * alpha_c_naive2) * (k[mode]**2) * P_lin)
     P_eft3_tr = P_1l_tr + ((2 * alpha_c_naive3) * (k[mode]**2) * P_lin)
+    P_eft4_tr = P_1l_tr + ((2 * alpha_c_naive4) * (k[mode]**2) * P_lin)
     P_eft_fit = P_1l_tr + ((2 * alpha_c_true) * (k[mode]**2) * P_lin)
 
     if zel == True:
         P_zel = np.array(P_zel)
         a_zel = np.array(a_zel)
-        return a_list, x, P_nb, P_1l_tr, P_eft_tr, P_eft2_tr, P_eft3_tr, P_eft_fit, P_zel, a_zel, err_Int
+        return a_list, x, P_nb, P_1l_tr, P_eft_tr, P_eft2_tr, P_eft3_tr, P_eft_fit, P_eft4_tr, P_zel, a_zel, err_Int
     else:
-        return a_list, x, P_nb, P_1l_tr, P_eft_tr, P_eft2_tr, P_eft3_tr, P_eft_fit, err_Int
+        return a_list, x, P_nb, P_1l_tr, P_eft_tr, P_eft2_tr, P_eft3_tr, P_eft4_tr, P_eft_fit, err_Int
 
 
 def alpha_c_finder(Nfiles, Lambda, path, A, mode, kind, n_runs=8, n_use=10, H0=100, fm='curve_fit', nbins_x=10, nbins_y=10, npars=3):
@@ -1731,7 +1762,7 @@ def read_hier(path, j):
     return a, dx, M0, M1, M2, C0, C1, C2
 
 
-def deriv_param_calc(dc_l, dv_l, tau_l):
+def best_ind_par(dc_l, dv_l, tau_l, dist):
     def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
         def dir_der_o1(X, tau_l, ind):
             """Calculates the first-order directional derivative of tau_l along the vector X."""
@@ -1739,6 +1770,7 @@ def deriv_param_calc(dc_l, dv_l, tau_l):
             x2 = np.array([X[0][ind+1], X[1][ind+1]])
             v = (x2 - x1)
             D_v_tau = (tau_l[ind+1] - tau_l[ind]) / v[0]
+            # print(D_v_tau)
             return v, D_v_tau
 
         def dir_der_o2(X, tau_l, ind):
@@ -1753,6 +1785,7 @@ def deriv_param_calc(dc_l, dv_l, tau_l):
             D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
             return v, D2_v_tau
 
+
         X = np.array([dc_l, dv_l])
         params_list = []
         for j in range(-dist//2, dist//2 + 1):
@@ -1760,26 +1793,104 @@ def deriv_param_calc(dc_l, dv_l, tau_l):
             v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
             dc_0, dv_0 = dc_l[ind], dv_l[ind]
             C_ = [((tau_l[ind])-(dtau1*dc_0)+((dtau1_o2*dc_0**2)/2)), dtau1-(dtau1_o2*dc_0), dtau1_o2/2]
-            # C_ = [(tau_l[ind]), dtau1, dtau1_o2/2]
             params_list.append(C_)
 
+        params_list = np.array(params_list)
+        dist = params_list.shape[0]
+        if dist != 0:
+            C0_ = np.mean(np.array([params_list[j][0] for j in range(dist)]))
+            C1_ = np.mean(np.array([params_list[j][1] for j in range(dist)]))
+            C2_ = np.mean(np.array([params_list[j][2] for j in range(dist)]))
+            C_ = [C0_, C1_, C2_]
+        else:
+            C_ = [0, 0, 0]
+        return C_
+
+    def opt_fun(opt_params, dc_l, dv_l, tau_l, dist):
+        ind = int(opt_params)
+        C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+        est = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+        resid = sum((tau_l - est)**2)
+        return resid
+
+
+    x0 = (np.argmin(dc_l**2 + dv_l**2))
+    bounds = [(0, 62500)]
+    sol = minimize(opt_fun, x0, args=(dc_l, dv_l, tau_l, dist), bounds=bounds)
+    sol_params = int(sol.x)
+    if sol.success:
+        pass
+    else:
+        print('Warning: the optimisation did not converge!')
+
+
+    def calc_fit(params, dc_l, dv_l, tau_l, dist):
+        ind = int(params)
+        C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+        return C_, ind
+
+    return calc_fit(sol_params, dc_l, dv_l, tau_l, dist)
+
+
+def deriv_param_calc(dc_l, dv_l, tau_l):
+    def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
+        def dir_der_o1(X, tau_l, ind):
+            """Calculates the first-order directional derivative of tau_l along the vector X."""
+            ind_right = ind + 2
+            if ind_right >= tau_l.size:
+                ind_right = ind_right - tau_l.size
+                print(ind, ind_right)
+
+            x1 = np.array([X[0][ind], X[1][ind]])
+            x2 = np.array([X[0][ind_right], X[1][ind_right]])
+            v = (x2 - x1)
+            D_v_tau = (tau_l[ind_right] - tau_l[ind]) / v[0]
+            return v, D_v_tau
+
+        def dir_der_o2(X, tau_l, ind):
+            """Calculates the second-order directional derivative of tau_l along the vector X."""
+            ind_right = ind + 4
+            if ind_right >= tau_l.size:
+                ind_right = ind_right - tau_l.size
+                print(ind, ind_right)
+            x1 = np.array([X[0][ind], X[1][ind]])
+            x2 = np.array([X[0][ind_right], X[1][ind_right]])
+            v1, D_v_tau1 = dir_der_o1(X, tau_l, ind)
+            v2, D_v_tau2 = dir_der_o1(X, tau_l, ind_right)
+            v = (x2 - x1)
+            D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
+            return v, D2_v_tau
+
+
+        X = np.array([dc_l, dv_l])
+        params_list = []
+        for j in range(-dist//2, dist//2 + 1):
+            v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
+            v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
+            if dtau1_o2 != None:
+                dc_0, dv_0 = dc_l[ind], dv_l[ind]
+                C_ = [((tau_l[ind])-(dtau1*dc_0)+((dtau1_o2*dc_0**2)/2)), dtau1-(dtau1_o2*dc_0), dtau1_o2/2]
+                params_list.append(C_)
 
         params_list = np.array(params_list)
-        C0_ = np.mean(np.array([params_list[j][0] for j in range(dist)]))
-        C1_ = np.mean(np.array([params_list[j][1] for j in range(dist)]))
-        C2_ = np.mean(np.array([params_list[j][2] for j in range(dist)]))
+        dist = params_list.shape[0]
+        if dist != 0:
+            C0_ = np.mean(np.array([params_list[j][0] for j in range(dist)]))
+            C1_ = np.mean(np.array([params_list[j][1] for j in range(dist)]))
+            C2_ = np.mean(np.array([params_list[j][2] for j in range(dist)]))
 
-        C_ = [C0_, C1_, C2_]
+            C_ = [C0_, C1_, C2_]
+        else:
+            C_ = [0, 0, 0]
         return C_
 
 
-    def minimise_deriv(params, dc_l, dv_l, tau_l):
-        start, thresh = params
+    def minimise_deriv(params, dc_l, dv_l, tau_l, dist):
+        start, thresh, n_sub = params
+        n_sub = int(np.abs(n_sub))
         N = dc_l.size
         if start < 0:
             start = N + start
-        dist = 10
-        n_sub = 50
         C_list = []
         sub = np.linspace(start, N-start+1, n_sub, dtype=int)
         del_ind = np.argmax(tau_l)
@@ -1799,17 +1910,13 @@ def deriv_param_calc(dc_l, dv_l, tau_l):
             C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
             C_list.append(C_)
 
-        # C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
-        # C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
-        # C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
-
         try:
             C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
             C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
             C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
         except:
             C0_ = 0
-            C1_ = 10
+            C1_ = 0
             C2_ = 0
 
         C_ = [C0_, C1_, C2_]
@@ -1818,109 +1925,142 @@ def deriv_param_calc(dc_l, dv_l, tau_l):
         resid = sum((tau_l - fit)**2)
         return resid
 
-    x0 = (8000, 8000)
-    sol = minimize(minimise_deriv, x0, args=(dc_l, dv_l, tau_l), bounds=[(3000, 15000), (3000, 15000)], method='Powell')
+    x0 = (8000, 8000, 25)
+    dist = 1
+    sol = minimize(minimise_deriv, x0, args=(dc_l, dv_l, tau_l, dist), bounds=[(1000, 20000), (1000, 21000), (1, 250)], method='Powell')#, tol=10)
+    sol_params = [int(np.abs(par)) for par in sol.x]
 
-    sol_params = sol.x
-    def calc_fit(params, dc_l, dv_l, tau_l):
-        start, thresh = params
-        dist = 10
-        n_sub = 100
+
+    def calc_fit(params, dc_l, dv_l, tau_l, dist):
+        start, thresh, n_sub = params
+        n_sub = int(np.abs(n_sub))
         C_list = []
         N = dc_l.size
         sub = np.linspace(start, N-start+1, n_sub, dtype=int)
         del_ind = np.argmax(tau_l)
+
         for point in sub:
+            if sub.size < 10:
+                break
             if del_ind-thresh < point < del_ind+thresh:
                 sub = np.delete(sub, np.where(sub==point)[0][0])
             else:
                 pass
         n_sub = sub.size
+        if n_sub == 0:
+            C_, ind = best_ind_par(dc_l, dv_l, tau_l, dist)
+            sub = [ind]
+            err_ = [0, 0, 0]
+            print('Warning: could not estimate errors, minimiser finds n_sub = 0, estimating using best index.')
 
-        for j in range(n_sub):
-            tau_val = tau_l[sub[j]]
-            tau_diff = np.abs(tau_l - tau_val)
-            ind_tau = np.argmin(tau_diff)
-            dc_0, dv_0 = dc_l[ind_tau], dv_l[ind_tau]
-            ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
-            C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
-            C_list.append(C_)
+        elif n_sub == 1:
+            C_ = new_param_calc(dc_l, dv_l, tau_l, dist, sub[0])
+            err_ = [0, 0, 0]
+            print('Warning: could not estimate errors, minimiser finds n_sub = 1.')
 
-        C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
-        C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
-        C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
-        err0_ = np.sqrt(sum([((C_list[l][0] - C0_)**2/(n_sub*(n_sub-1))) for l in range(len(C_list))]))
-        err1_ = np.sqrt(sum([((C_list[l][1] - C0_)**2/(n_sub*(n_sub-1))) for l in range(len(C_list))]))
-        err2_ = np.sqrt(sum([((C_list[l][2] - C0_)**2/(n_sub*(n_sub-1))) for l in range(len(C_list))]))
-        err_ = [err0_, err1_, err2_]
-        C_ = [C0_, C1_, C2_]
+        else:
+            for j in range(n_sub):
+                tau_val = tau_l[sub[j]]
+                tau_diff = np.abs(tau_l - tau_val)
+                ind_tau = np.argmin(tau_diff)
+                dc_0, dv_0 = dc_l[ind_tau], dv_l[ind_tau]
+                ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
+                C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+                C_list.append(C_)
+            C0_ = np.mean([C_list[l][0] for l in range(len(C_list))])
+            C1_ = np.mean([C_list[l][1] for l in range(len(C_list))])
+            C2_ = np.mean([C_list[l][2] for l in range(len(C_list))])
+            err0_ = np.sqrt(sum([((C_list[l][0] - C0_)**2/(n_sub*(n_sub-1))) for l in range(len(C_list))]))
+            err1_ = np.sqrt(sum([((C_list[l][1] - C0_)**2/(n_sub*(n_sub-1))) for l in range(len(C_list))]))
+            err2_ = np.sqrt(sum([((C_list[l][2] - C0_)**2/(n_sub*(n_sub-1))) for l in range(len(C_list))]))
+            err_ = [err0_, err1_, err2_]
+            C_ = [C0_, C1_, C2_]
+
         fit = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
-        return C_, err_
+        resid = sum((tau_l-fit)**2)
+        C_1pt, ind = best_ind_par(dc_l, dv_l, tau_l, dist)
+        fit1pt = C_1pt[0] + C_1pt[1]*dc_l + C_1pt[2]*dc_l**2
+        resid1pt = sum((tau_l-fit1pt)**2)
 
-    return calc_fit(sol_params, dc_l, dv_l, tau_l)
+        return C_, err_, sub
+        # if resid < resid1pt:
+        #     return C_, err_, sub
+        # else:
+        #     return C_1pt, [0, 0, 0], [ind]
+        # return C_, err_, sub
+
+    return calc_fit(sol_params, dc_l, dv_l, tau_l, dist)
 
 
-# def deriv_param_calc(dc_l, dv_l, tau_l):
-#     def dir_der_o1(X, tau_l, ind):
-#         """Calculates the first-order directional derivative of tau_l along the vector X."""
-#         x1 = np.array([X[0][ind], X[1][ind]])
-#         x2 = np.array([X[0][ind+1], X[1][ind+1]])
-#         v = (x2 - x1)
-#         D_v_tau = (tau_l[ind+1] - tau_l[ind]) / v[0]
-#         return v, D_v_tau
-#
-#     def dir_der_o2(X, tau_l, ind):
-#         """Calculates the second-order directional derivative of tau_l along the vector X."""
-#         #calculate the first-order directional derivatives at two different points
-#         v0, D_v_tau0 = dir_der_o1(X, tau_l, ind-2)
-#         v1, D_v_tau1 = dir_der_o1(X, tau_l, ind)
-#         v2, D_v_tau2 = dir_der_o1(X, tau_l, ind+2)
-#         x0 = np.array([X[0][ind-2], X[1][ind-2]])
-#         x1 = np.array([X[0][ind], X[1][ind]])
-#         x2 = np.array([X[0][ind+2], X[1][ind+2]])
-#         v = (x2 - x1)
-#         D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
-#         return v, D2_v_tau
-#
-#     def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
-#         X = np.array([dc_l, dv_l])
-#         j = 0
-#         params_list = []
-#         for j in range(-dist//2, dist//2 + 1):
-#             v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
-#             v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
-#             C_ = [tau_l[ind], dtau1, dtau1_o2/2]
-#             params_list.append(C_)
-#
-#
-#         params_list = np.array(params_list)
-#         C0_ = np.mean(np.array([params_list[j][0] for j in range(dist)]))
-#         C1_ = np.mean(np.array([params_list[j][1] for j in range(dist)]))
-#         C2_ = np.mean(np.array([params_list[j][2] for j in range(dist)]))
-#
-#         C_ = [C0_, C1_, C2_]
-#         return C_
-#
-#     dist = 50
-#     # params_list = []
-#     # inds = []
-#     # ind = np.argmin(dc_l**2 + dv_l**2)
-#     # n_points = 40
-#     # for gap in range(n_points):
-#     #     gap *= dc_l.size//n_points
-#     #     inds.append(int(ind-gap))
-#     #
-#     #
-#     # for ind in inds:
-#     #     C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
-#     #     params_list.append(C_)
-#     #
-#     # C0_ = np.mean([params_list[j][0] for j in range(len(params_list))])
-#     # C1_ = np.mean([params_list[j][1] for j in range(len(params_list))])
-#     # C2_ = np.mean([params_list[j][2] for j in range(len(params_list))])
-#
-#     ind = np.argmin(dc_l**2 + dv_l**2)
-#     C0_, C1_, C2_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
-#
-#     C_ = [C0_, C1_, C2_]
-#     return C_
+
+def percentile_fde(dc_l, dv_l, tau_l, per):
+    def new_param_calc(dc_l, dv_l, tau_l, dist, ind):
+        def dir_der_o1(X, tau_l, ind):
+            """Calculates the first-order directional derivative of tau_l along the vector X."""
+            ind_right = ind + 2
+            if ind_right >= tau_l.size:
+                ind_right = ind_right - tau_l.size
+                print(ind, ind_right)
+
+            x1 = np.array([X[0][ind], X[1][ind]])
+            x2 = np.array([X[0][ind_right], X[1][ind_right]])
+            v = (x2 - x1)
+            D_v_tau = (tau_l[ind_right] - tau_l[ind]) / v[0]
+            return v, D_v_tau
+
+        def dir_der_o2(X, tau_l, ind):
+            """Calculates the second-order directional derivative of tau_l along the vector X."""
+            ind_right = ind + 4
+            if ind_right >= tau_l.size:
+                ind_right = ind_right - tau_l.size
+                print(ind, ind_right)
+            x1 = np.array([X[0][ind], X[1][ind]])
+            x2 = np.array([X[0][ind_right], X[1][ind_right]])
+            v1, D_v_tau1 = dir_der_o1(X, tau_l, ind)
+            v2, D_v_tau2 = dir_der_o1(X, tau_l, ind_right)
+            v = (x2 - x1)
+            D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
+            return v, D2_v_tau
+
+        X = np.array([dc_l, dv_l])
+        params_list = []
+        for j in range(-dist//2, dist//2 + 1):
+            v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
+            v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
+            dc_0, dv_0 = dc_l[ind], dv_l[ind]
+            C_ = [((tau_l[ind])-(dtau1*dc_0)+((dtau1_o2*dc_0**2)/2)), dtau1-(dtau1_o2*dc_0), dtau1_o2/2]
+            params_list.append(C_)
+
+        params_list = np.array(params_list)
+        dist = params_list.shape[0]
+        if dist != 0:
+            C0_ = np.mean(np.array([params_list[j][0] for j in range(dist)]))
+            C1_ = np.mean(np.array([params_list[j][1] for j in range(dist)]))
+            C2_ = np.mean(np.array([params_list[j][2] for j in range(dist)]))
+            C_ = [C0_, C1_, C2_]
+        else:
+            C_ = [0, 0, 0]
+        return C_
+
+    dist = 1
+    ind = np.argmin(dc_l**2 + dv_l**2)
+    distance = np.sqrt(dc_l**2 + dv_l**2)
+    per_dist = np.percentile(distance, per)
+    indices = np.where(distance < per_dist)[0]
+
+    params_list = []
+    for ind in indices:
+        C_ = new_param_calc(dc_l, dv_l, tau_l, dist, ind)
+        params_list.append(C_)
+
+    C0_ = np.median([params_list[j][0] for j in range(len(params_list))])
+    C1_ = np.median([params_list[j][1] for j in range(len(params_list))])
+    C2_ = np.median([params_list[j][2] for j in range(len(params_list))])
+
+    # C0_ = np.mean([params_list[j][0] for j in range(len(params_list))])
+    # C1_ = np.mean([params_list[j][1] for j in range(len(params_list))])
+    # C2_ = np.mean([params_list[j][2] for j in range(len(params_list))])
+    C_ = [C0_, C1_, C2_]
+
+    err_ = [0, 0, 0]
+    return C_, err_

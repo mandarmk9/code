@@ -138,8 +138,8 @@ def EFT_solve(j, Lambda, path, A, kind):
     tau_l = (kappa_l + Phi_l)
 
 
-    return a, x, k, P_nb_a, P_lin_a, P_1l_a_sm, P_2l_a_sm, P_1l_a_tr, P_2l_a_tr, tau_l, dc_l, dv_l, d1k, d2k, kappa_l, Phi_l, Phi_l_true, Phi_l_cgpt, Phi_l_bau, M0_nbody, M0_hier, v_l, M2_nbody, C1_nbody
-    # return a, x, d1k, dc_l, dv_l, tau_l, P_nb_a, P_1l_a_tr
+    # return a, x, k, P_nb_a, P_lin_a, P_1l_a_sm, P_2l_a_sm, P_1l_a_tr, P_2l_a_tr, tau_l, dc_l, dv_l, d1k, d2k, kappa_l, Phi_l, Phi_l_true, Phi_l_cgpt, Phi_l_bau, M0_nbody, M0_hier, v_l, M2_nbody, C1_nbody
+    return a, x, d1k, dc_l, dv_l, tau_l, P_nb_a, P_1l_a_tr
 
 def param_calc(j, Lambda, path, A, mode, kind):
     a, x, k, P_nb_a, P_lin_a, P_1l_a_sm, P_2l_a_sm, P_1l_a_tr, P_2l_a_tr, tau_l_0, dc_l, dv_l, d1k, d2k, kappa_l, Phi_l, Phi_l_true, Phi_l_cgpt, Phi_l_bau, M0_nbody, M0_hier, v_l, M2, C1_nbody = EFT_solve(j, Lambda, path, A, kind)
@@ -268,20 +268,20 @@ def param_calc(j, Lambda, path, A, mode, kind):
     return a, x, d1k, dc_l, dv_l, tau_l, P_nb_a, P_1l_a_tr
     # return a, x, tau_l, fit, yerr, red_chi
 
-path = 'cosmo_sim_1d/sim_k_1_11/run1/'
-mode = 1
-Lambda = (2*np.pi) * 3
-
-A = [-0.05, 1, -0.5, 11]
-kind = 'sharp'
-kind_txt = 'sharp cutoff'
-# kind = 'gaussian'
-# kind_txt = 'Gaussian smoothing'
-Nfiles = 51
-for j in range(51):
-    # j = 0
-    sol = param_calc(j, Lambda, path, A, mode, kind)
-    print('a = {}\n'.format(sol[0]))
+# path = 'cosmo_sim_1d/sim_k_1_11/run1/'
+# mode = 1
+# Lambda = (2*np.pi) * 3
+#
+# A = [-0.05, 1, -0.5, 11]
+# kind = 'sharp'
+# kind_txt = 'sharp cutoff'
+# # kind = 'gaussian'
+# # kind_txt = 'Gaussian smoothing'
+# Nfiles = 51
+# for j in range(51):
+#     # j = 0
+#     sol = param_calc(j, Lambda, path, A, mode, kind)
+#     print('a = {}\n'.format(sol[0]))
 
 # path = 'cosmo_sim_1d/nbody_phase_run1/'
 # mode = 1

@@ -19,376 +19,411 @@ kind_txt = 'sharp cutoff'
 # kind = 'gaussian'
 # kind_txt = 'Gaussian smoothing'
 
-j = 10
-a, x, d1k, dc_l, dv_l, tau_l, P_nb, P_1l = read_sim_data(path, Lambda, kind, j)
-# print(a)
-dv_l *= -np.sqrt(a) / 100
-tau_l -= np.mean(tau_l)
-# plt.plot(x, tau_l)
+# j = 40
+for j in range(27, 28):
+    file_num = j
+    a, x, d1k, dc_l, dv_l, tau_l, P_nb, P_1l = read_sim_data(path, Lambda, kind, j)
+    # print(a)
+    dv_l *= -np.sqrt(a) / 100
+    tau_l -= np.mean(tau_l)
+    # plt.plot(x, tau_l)
 
-def dir_der_o1(X, tau_l, ind):
-    """Calculates the first-order directional derivative of tau_l along the vector X."""
-    x1 = np.array([X[0][ind], X[1][ind]])
-    x2 = np.array([X[0][ind+1], X[1][ind+1]])
-    v = (x2 - x1)
-    D_v_tau = (tau_l[ind+1] - tau_l[ind]) / v[0] #/ v[0]
-    return v, D_v_tau
+    def dir_der_o1(X, tau_l, ind):
+        """Calculates the first-order directional derivative of tau_l along the vector X."""
+        x1 = np.array([X[0][ind], X[1][ind]])
+        x2 = np.array([X[0][ind+1], X[1][ind+1]])
+        v = (x2 - x1)
+        D_v_tau = (tau_l[ind+1] - tau_l[ind]) / v[0] #/ v[0]
+        return v, D_v_tau
 
-def dir_der_o2(X, tau_l, ind):
-    """Calculates the second-order directional derivative of tau_l along the vector X."""
-    #calculate the first-order directional derivatives at two different points
-    v1, D_v_tau1 = dir_der_o1(X, tau_l, ind)
-    v2, D_v_tau2 = dir_der_o1(X, tau_l, ind+2)
-    x1 = np.array([X[0][ind], X[1][ind]])
-    x2 = np.array([X[0][ind+2], X[1][ind+2]])
-    v = (x2 - x1)
-    D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
-    return v, D2_v_tau
+    def dir_der_o2(X, tau_l, ind):
+        """Calculates the second-order directional derivative of tau_l along the vector X."""
+        #calculate the first-order directional derivatives at two different points
+        v1, D_v_tau1 = dir_der_o1(X, tau_l, ind)
+        v2, D_v_tau2 = dir_der_o1(X, tau_l, ind+2)
+        x1 = np.array([X[0][ind], X[1][ind]])
+        x2 = np.array([X[0][ind+2], X[1][ind+2]])
+        v = (x2 - x1)
+        D2_v_tau = (D_v_tau2 - D_v_tau1) / v[0]
+        return v, D2_v_tau
 
-def new_param_calc(dc_l, dv_l, tau_l, dist):
-    ind = np.argmin(dc_l**2 + dv_l**2)
-    X = np.array([dc_l, dv_l])
-    params_list = []
-    for j in range(-dist//2, dist//2 + 1):
-        v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
-        v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
-        C_ = [tau_l[ind], dtau1, dtau1_o2/2]
-        params_list.append(C_)
-
-
-    params_list = np.array(params_list)
-    C0_ = np.mean(np.array([params_list[j][0] for j in range(dist)]))
-    C1_ = np.mean(np.array([params_list[j][1] for j in range(dist)]))
-    C2_ = np.mean(np.array([params_list[j][2] for j in range(dist)]))
-    C_ = [C0_, C1_, C2_]
-    return C_
-
-dist = 20
-C_ = new_param_calc(dc_l, dv_l, tau_l, dist)
-
-# # tau_l -= np.mean(tau_l)
-# # ind = np.argmin(dc_l**2 + dv_l**2)
-# ind = np.argmin(tau_l**2)
-# # print(ind, ind2)
-# # print(tau_l[ind], tau_l[ind2])
-#
-# last = 10000
-# # print(ind)
-# tau_l_sp = tau_l[ind-last:ind+last]
-# dc_l_sp = dc_l[ind-last:ind+last]
-# dv_l_sp = dv_l[ind-last:ind+last]
-#
-# # tau_l_sp = tau_l[0::800]
-# # dc_l_sp = dc_l[0::800]
-# # dv_l_sp = dv_l[0::800]
-#
-# N = tau_l_sp.size
-# taus_calc = []
-# for j in range(N-3):
-#     # print(j)
-#     C_ = new_param_calc(dc_l_sp, dv_l_sp, tau_l_sp, dist, j)
-#     print(C_)
-#     tau_calc = C_[0] + C_[1]*dc_l[j] + C_[2]*dc_l[j]**2
-#     taus_calc.append(tau_calc)
-# # print(taus_calc[int((N-3)/2)])
-# taus_calc = np.array(taus_calc)
-
-# plt.rcParams.update({"text.usetex": True})
-# fig, ax = plt.subplots()
-# ax.scatter(tau_l_sp[:-3], taus_calc, c='b', s=2)
-# ax.set_xlabel(r'$\tau_{l}$')
-# ax.set_ylabel(r'$\Delta \tau_{l}$')
-#
-# plt.savefig('../plots/test/new_paper_plots/tau_diff.png', bbox_inches='tight', dpi=150)
-# plt.close()
+    def new_param_calc(dc_l, dv_l, tau_l, dist):
+        ind = np.argmin(dc_l**2 + dv_l**2)
+        X = np.array([dc_l, dv_l])
+        params_list = []
+        for j in range(-dist//2, dist//2 + 1):
+            v1, dtau1 = dir_der_o1(X, tau_l, ind+j)
+            v1_o2, dtau1_o2 = dir_der_o2(X, tau_l, ind+j)
+            C_ = [tau_l[ind], dtau1, dtau1_o2/2]
+            params_list.append(C_)
 
 
-##plotting
-plt.rcParams.update({"text.usetex": True})
-fig, ax = plt.subplots()
-###
+        params_list = np.array(params_list)
+        C0_ = np.mean(np.array([params_list[j][0] for j in range(dist)]))
+        C1_ = np.mean(np.array([params_list[j][1] for j in range(dist)]))
+        C2_ = np.mean(np.array([params_list[j][2] for j in range(dist)]))
+        C_ = [C0_, C1_, C2_]
+        return C_
 
-# nvlines, nhlines = 25, 25 #60, 60
-# min_dc, max_dc = dc_l.min(), dc_l.max()
-# dc_bins = np.linspace(min_dc, max_dc, nvlines)
-#
-# min_dv, max_dv = dv_l.min(), dv_l.max()
-# dv_bins = np.linspace(min_dv, max_dv, nhlines)
+    dist = 20
+    C_ = new_param_calc(dc_l, dv_l, tau_l, dist)
 
-# nvlines, nhlines = 10, 10 #dc_bins.size, dv_bins.size
-# bin_size = 2.5e-3
-# dc_bins = np.arange(-nvlines*bin_size, (nvlines*bin_size), bin_size)
-# print(dc_bins)
-# bin_size = 2.5e-3
-# dv_bins = np.arange(-nhlines*bin_size, (nhlines*bin_size), bin_size)
-# nvlines, nhlines = dc_bins.size, dv_bins.size
-# # print(dc_bins.size, dv_bins.size)
-# # # print(nvlines, nhlines = )
+    # # tau_l -= np.mean(tau_l)
+    # # ind = np.argmin(dc_l**2 + dv_l**2)
+    # ind = np.argmin(tau_l**2)
+    # # print(ind, ind2)
+    # # print(tau_l[ind], tau_l[ind2])
+    #
+    # last = 10000
+    # # print(ind)
+    # tau_l_sp = tau_l[ind-last:ind+last]
+    # dc_l_sp = dc_l[ind-last:ind+last]
+    # dv_l_sp = dv_l[ind-last:ind+last]
+    #
+    # # tau_l_sp = tau_l[0::800]
+    # # dc_l_sp = dc_l[0::800]
+    # # dv_l_sp = dv_l[0::800]
+    #
+    # N = tau_l_sp.size
+    # taus_calc = []
+    # for j in range(N-3):
+    #     # print(j)
+    #     C_ = new_param_calc(dc_l_sp, dv_l_sp, tau_l_sp, dist, j)
+    #     print(C_)
+    #     tau_calc = C_[0] + C_[1]*dc_l[j] + C_[2]*dc_l[j]**2
+    #     taus_calc.append(tau_calc)
+    # # print(taus_calc[int((N-3)/2)])
+    # taus_calc = np.array(taus_calc)
 
-# dc_bins, dv_bins = [], []
-# nbins_dc, nbins_dv = 15, 15
-# bin_size = 2.5e-3
-# j = 1
-# while j < nbins_dc+1:
-#     idx_dc = np.where(np.logical_and(dc_l>=-bin_size*j, dc_l<=bin_size*j))[0]
-#     dc_bins.append(idx_dc)
-#     j +=1
-#
-# j = 1
-# while j < nbins_dv+1:
-#     idx_dv = np.where(np.logical_and(dv_l>=-bin_size*j, dv_l<=bin_size*j))[0]
-#     dv_bins.append(idx_dv)
-#     j += 1
-#
-# binned_dc = np.array([np.mean(dc_l[dc_bins[j]]) for j in range(len(dc_bins))])
-# binned_dv = np.array([np.mean(dv_l[dv_bins[j]]) for j in range(len(dv_bins))])
-#
-# interp2d(binned_dc, binned_dv, tau_l)
-# print(dc_bins[0], dv_bins[0])
-# # print(binned_dc, binned_dv)
-#
-# # print(idx_dc.size, idx_dv.size)
-# # print(np.mean(dc_l[idx_dc]))
-# # print(np.mean(dv_l[idx_dv]))
-
-# plt.plot(x, dv_l)
-# plt.plot(x, dc_l)
-#
-# plt.show()
-
-# print(dc_l[:100])
-# print(dv_l[:100])
-
-# def find_nearest(a, a0):
-#     """Element in nd array 'a' closest to the scalar value 'a0'."""
-#     idx = np.abs(a - a0).argmin()
-#     return idx, a.flat[idx]
-#
-# bsx =0.3e-1#0.1
-# bsy = 0.3e-1#0.1#1e-2
-# print(np.abs(dc_l[1]-dc_l[0]))
-# dels, thes, taus, co_x1, co_x2, co_y1, co_y2 = [], [], [], [], [], [], []
-# nbins = 40
-#
-# zero_x = 0#find_nearest(dc_l, 0)[1]
-# zero_y = 0#find_nearest(dv_l, 0)[1]
-#
-# minima = 7 #min(taus)
-# maxima = 8 #max(taus)
-# norm = colors.Normalize(vmin=minima, vmax=maxima, clip=True)
-# mapper = cm.ScalarMappable(norm=norm, cmap='viridis')
-# # print(zero_x, zero_y)
-# # co_xl, co_xr = dc_l.min() + j*bsx, dc_l.min() + (j+1)*(bsx)
-# # co_yl, co_yr = dv_l.min() + j*bsy, dv_l.min() + (j+1)*(bsy)
-#
-# coor_x = [(-((bsx/2) + ((nbins/2)-j+1)*bsx + zero_x), -((bsx/2) + ((nbins/2)-j)*bsx + zero_x)) for j in range(nbins)]
-# coor_y = [(-((bsy/2) + ((nbins/2)-j+1)*bsy + zero_y), -((bsy/2) + ((nbins/2)-j)*bsx + zero_y)) for j in range(nbins)]
-#
-#
-# for j in range(nbins):
-#     for l in range(nbins):
-#         # map = 8
-#         # verts = [[coor_x[j][0], coor_y[l][1]], [coor_x[j][0], coor_y[l][0]], [coor_x[j][1], coor_y[l][0]], [coor_x[j][1], coor_y[l][1]]]
-#         # poly = PolyCollection([verts], facecolors='r', edgecolors='k', linewidth=1)
-#         # ax.add_collection(poly)
-#
-#         try:
-#             dc_co = np.logical_and(dc_l>=coor_x[j][0], dc_l<=coor_x[j][1])
-#             dv_co = np.logical_and(dv_l>=coor_y[l][0], dv_l<=coor_y[l][1])
-#             idx = np.where(np.logical_and(dc_co, dv_co))[0]
-#             idx_dc = np.where(dc_co)[0]
-#             idx_dv = np.where(dv_co)[0]
-#
-#             bin0_dc = np.mean(dc_l[idx_dc])
-#             bin0_dv = np.mean(dv_l[idx_dv])
-#             bin0_tau = np.mean(tau_l[idx])
-#             dels.append(bin0_dc)
-#             thes.append(bin0_dv)
-#             taus.append(bin0_tau)
-#             map = bin0_tau
-#             verts = [[coor_x[j][0], coor_y[l][1]], [coor_x[j][0], coor_y[l][0]], [coor_x[j][1], coor_y[l][0]], [coor_x[j][1], coor_y[l][1]]]
-#             color = mapper.to_rgba(map)
-#             poly = PolyCollection([verts], facecolors=color, edgecolors='k', linewidth=1)
-#             ax.add_collection(poly)
-#         except Exception as e: print(e)
-# try:
-#     print(co_xl, co_xr)
-#     print(co_yl, co_yr)
-#
-#     dc_co = np.logical_and(dc_l>=co_xl, dc_l<=co_xr)
-#     dv_co = np.logical_and(dv_l>=co_yl, dv_l<=co_yr)
-#     idx = np.where(np.logical_and(dc_co, dv_co))[0]
-#     idx_dc = np.where(dc_co)[0]
-#     idx_dv = np.where(dv_co)[0]
-#
-#     bin0_dc = np.mean(dc_l[idx_dc])
-#     bin0_dv = np.mean(dv_l[idx_dv])
-#     bin0_tau = np.mean(tau_l[idx])
-#     dels.append(bin0_dc)
-#     thes.append(bin0_dv)
-#     taus.append(bin0_tau)
-#
-#     co_x1.append(co_xl)
-#     co_y1.append(co_yl)
-#     co_x2.append(co_xr)
-#     co_y2.append(co_yr)
-#
-#
-#     # ax.scatter(np.mean(dc_l[dc_co]), np.mean(dv_l[dv_co]), c='r')
-# except Exception as e: print(e)
-#     # pass
-
-# # print(taus)
-# minima = min(taus)
-# maxima = max(taus)
-# norm = colors.Normalize(vmin=minima, vmax=maxima, clip=True)
-# mapper = cm.ScalarMappable(norm=norm, cmap='viridis')
-
-# for j in range(len(co_x1)):
-#     # for l in range(len(co_y1)):
-#     map = taus[j]
-#     verts = [[co_x1[j], co_y2[j]], [co_x1[j], co_y1[j]], [co_x2[j], co_y1[j]], [co_x2[j], co_y2[j]]]
-#     color = mapper.to_rgba(map)
-#     poly = PolyCollection([verts], facecolors = color, edgecolors='k', linewidth=1)
-#     ax.add_collection(poly)
+    # plt.rcParams.update({"text.usetex": True})
+    # fig, ax = plt.subplots()
+    # ax.scatter(tau_l_sp[:-3], taus_calc, c='b', s=2)
+    # ax.set_xlabel(r'$\tau_{l}$')
+    # ax.set_ylabel(r'$\Delta \tau_{l}$')
+    #
+    # plt.savefig('../plots/test/new_paper_plots/tau_diff.png', bbox_inches='tight', dpi=150)
+    # plt.close()
 
 
-# points = (dels, thes)
-# x_g = np.arange(dc_l.min(), dc_l.max(), 1e-3)
-# y_g = np.arange(dv_l.min(), dv_l.max(), 1e-3)
-#
-# grid_x, grid_y = np.meshgrid(x_g, y_g)
-# tau = griddata(points, taus, (grid_x, grid_y))
-#
-# print(tau)
-# def find_nearest(a, a0):
-#     """Element in nd array 'a' closest to the scalar value 'a0'."""
-#     idx = np.abs(a - a0).argmin()
-#     return idx, a.flat[idx]
-#
-# ind_x, val_x = find_nearest(x_g, 0)
-# ind_y, val_y = find_nearest(y_g, 0)
-#
-# print(ind_x, val_x)
-# print(ind_y, val_y)
+    ##plotting
+    plt.rcParams.update({"text.usetex": True})
+    fig, ax = plt.subplots()
+    ###
 
-# print(tau[ind_x, ind_y])
+    # nvlines, nhlines = 25, 25 #60, 60
+    # min_dc, max_dc = dc_l.min(), dc_l.max()
+    # dc_bins = np.linspace(min_dc, max_dc, nvlines)
+    #
+    # min_dv, max_dv = dv_l.min(), dv_l.max()
+    # dv_bins = np.linspace(min_dv, max_dv, nhlines)
 
-# ind_dc, val_dc = find_nearest(dels, 0)
-# ind_dv, val_dv = find_nearest(thes, 0)
+    # nvlines, nhlines = 10, 10 #dc_bins.size, dv_bins.size
+    # bin_size = 2.5e-3
+    # dc_bins = np.arange(-nvlines*bin_size, (nvlines*bin_size), bin_size)
+    # print(dc_bins)
+    # bin_size = 2.5e-3
+    # dv_bins = np.arange(-nhlines*bin_size, (nhlines*bin_size), bin_size)
+    # nvlines, nhlines = dc_bins.size, dv_bins.size
+    # # print(dc_bins.size, dv_bins.size)
+    # # # print(nvlines, nhlines = )
 
-# print(taus[ind_dv])
-# print(np.mean(taus))
-# # print(dels, thes, taus)
+    # dc_bins, dv_bins = [], []
+    # nbins_dc, nbins_dv = 15, 15
+    # bin_size = 2.5e-3
+    # j = 1
+    # while j < nbins_dc+1:
+    #     idx_dc = np.where(np.logical_and(dc_l>=-bin_size*j, dc_l<=bin_size*j))[0]
+    #     dc_bins.append(idx_dc)
+    #     j +=1
+    #
+    # j = 1
+    # while j < nbins_dv+1:
+    #     idx_dv = np.where(np.logical_and(dv_l>=-bin_size*j, dv_l<=bin_size*j))[0]
+    #     dv_bins.append(idx_dv)
+    #     j += 1
+    #
+    # binned_dc = np.array([np.mean(dc_l[dc_bins[j]]) for j in range(len(dc_bins))])
+    # binned_dv = np.array([np.mean(dv_l[dv_bins[j]]) for j in range(len(dv_bins))])
+    #
+    # interp2d(binned_dc, binned_dv, tau_l)
+    # print(dc_bins[0], dv_bins[0])
+    # # print(binned_dc, binned_dv)
+    #
+    # # print(idx_dc.size, idx_dv.size)
+    # # print(np.mean(dc_l[idx_dc]))
+    # # print(np.mean(dv_l[idx_dv]))
 
-# # ##plotting
-ax.set_xlabel(r'$\delta_{l}$', fontsize=18)
-ax.set_ylabel(r'$\theta_{l}$', fontsize=18)
-ax.set_title(r'$a = {}, \Lambda = {}\;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(np.round(a, 3), int(Lambda/(2*np.pi)), kind_txt), fontsize=16)
-# ax.set_title(r'$a = {}, \Lambda = {}\;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(int(Lambda/(2*np.pi)), kind_txt), fontsize=16)
-# minima = min(taus)
-# maxima = max(taus)
-# norm = colors.Normalize(vmin=minima, vmax=maxima, clip=True)
-# mapper = cm.ScalarMappable(norm=norm, cmap='viridis')
-# for j in range(len(dels)):
-#     # ax.axvline(dc_bins[j], c='k', lw=0.5)
-#     ax.axvline(co_x1[j], c='k', lw=0.5)
-#     ax.axvline(co_x2[j], c='k', lw=0.5)
-#
-#     # map = taus
-#     # color = mapper.to_rgba(map)
-#     ax.axhline(co_y1[j], c='k', lw=0.5)
-#     ax.axhline(co_y2[j], c='k', lw=0.5)
-#
-#     # for l in range(len(dels)):
-#     #     verts = [[co_x1[j], co_y2[l]], [co_x1[j], co_y1[l]], [co_x2[j], co_y1[l]], [co_x2[j], co_y2[l]]]
-#     #     poly = PolyCollection([verts], facecolors = color, edgecolors='k', linewidth=1)
-#     #     ax.add_collection(poly)
+    # plt.plot(x, dv_l)
+    # plt.plot(x, dc_l)
+    #
+    # plt.show()
+
+    # print(dc_l[:100])
+    # print(dv_l[:100])
+
+    # def find_nearest(a, a0):
+    #     """Element in nd array 'a' closest to the scalar value 'a0'."""
+    #     idx = np.abs(a - a0).argmin()
+    #     return idx, a.flat[idx]
+    #
+    # bsx =0.3e-1#0.1
+    # bsy = 0.3e-1#0.1#1e-2
+    # print(np.abs(dc_l[1]-dc_l[0]))
+    # dels, thes, taus, co_x1, co_x2, co_y1, co_y2 = [], [], [], [], [], [], []
+    # nbins = 40
+    #
+    # zero_x = 0#find_nearest(dc_l, 0)[1]
+    # zero_y = 0#find_nearest(dv_l, 0)[1]
+    #
+    # minima = 7 #min(taus)
+    # maxima = 8 #max(taus)
+    # norm = colors.Normalize(vmin=minima, vmax=maxima, clip=True)
+    # mapper = cm.ScalarMappable(norm=norm, cmap='viridis')
+    # # print(zero_x, zero_y)
+    # # co_xl, co_xr = dc_l.min() + j*bsx, dc_l.min() + (j+1)*(bsx)
+    # # co_yl, co_yr = dv_l.min() + j*bsy, dv_l.min() + (j+1)*(bsy)
+    #
+    # coor_x = [(-((bsx/2) + ((nbins/2)-j+1)*bsx + zero_x), -((bsx/2) + ((nbins/2)-j)*bsx + zero_x)) for j in range(nbins)]
+    # coor_y = [(-((bsy/2) + ((nbins/2)-j+1)*bsy + zero_y), -((bsy/2) + ((nbins/2)-j)*bsx + zero_y)) for j in range(nbins)]
+    #
+    #
+    # for j in range(nbins):
+    #     for l in range(nbins):
+    #         # map = 8
+    #         # verts = [[coor_x[j][0], coor_y[l][1]], [coor_x[j][0], coor_y[l][0]], [coor_x[j][1], coor_y[l][0]], [coor_x[j][1], coor_y[l][1]]]
+    #         # poly = PolyCollection([verts], facecolors='r', edgecolors='k', linewidth=1)
+    #         # ax.add_collection(poly)
+    #
+    #         try:
+    #             dc_co = np.logical_and(dc_l>=coor_x[j][0], dc_l<=coor_x[j][1])
+    #             dv_co = np.logical_and(dv_l>=coor_y[l][0], dv_l<=coor_y[l][1])
+    #             idx = np.where(np.logical_and(dc_co, dv_co))[0]
+    #             idx_dc = np.where(dc_co)[0]
+    #             idx_dv = np.where(dv_co)[0]
+    #
+    #             bin0_dc = np.mean(dc_l[idx_dc])
+    #             bin0_dv = np.mean(dv_l[idx_dv])
+    #             bin0_tau = np.mean(tau_l[idx])
+    #             dels.append(bin0_dc)
+    #             thes.append(bin0_dv)
+    #             taus.append(bin0_tau)
+    #             map = bin0_tau
+    #             verts = [[coor_x[j][0], coor_y[l][1]], [coor_x[j][0], coor_y[l][0]], [coor_x[j][1], coor_y[l][0]], [coor_x[j][1], coor_y[l][1]]]
+    #             color = mapper.to_rgba(map)
+    #             poly = PolyCollection([verts], facecolors=color, edgecolors='k', linewidth=1)
+    #             ax.add_collection(poly)
+    #         except Exception as e: print(e)
+    # try:
+    #     print(co_xl, co_xr)
+    #     print(co_yl, co_yr)
+    #
+    #     dc_co = np.logical_and(dc_l>=co_xl, dc_l<=co_xr)
+    #     dv_co = np.logical_and(dv_l>=co_yl, dv_l<=co_yr)
+    #     idx = np.where(np.logical_and(dc_co, dv_co))[0]
+    #     idx_dc = np.where(dc_co)[0]
+    #     idx_dv = np.where(dv_co)[0]
+    #
+    #     bin0_dc = np.mean(dc_l[idx_dc])
+    #     bin0_dv = np.mean(dv_l[idx_dv])
+    #     bin0_tau = np.mean(tau_l[idx])
+    #     dels.append(bin0_dc)
+    #     thes.append(bin0_dv)
+    #     taus.append(bin0_tau)
+    #
+    #     co_x1.append(co_xl)
+    #     co_y1.append(co_yl)
+    #     co_x2.append(co_xr)
+    #     co_y2.append(co_yr)
+    #
+    #
+    #     # ax.scatter(np.mean(dc_l[dc_co]), np.mean(dv_l[dv_co]), c='r')
+    # except Exception as e: print(e)
+    #     # pass
+
+    # # print(taus)
+    # minima = min(taus)
+    # maxima = max(taus)
+    # norm = colors.Normalize(vmin=minima, vmax=maxima, clip=True)
+    # mapper = cm.ScalarMappable(norm=norm, cmap='viridis')
+
+    # for j in range(len(co_x1)):
+    #     # for l in range(len(co_y1)):
+    #     map = taus[j]
+    #     verts = [[co_x1[j], co_y2[j]], [co_x1[j], co_y1[j]], [co_x2[j], co_y1[j]], [co_x2[j], co_y2[j]]]
+    #     color = mapper.to_rgba(map)
+    #     poly = PolyCollection([verts], facecolors = color, edgecolors='k', linewidth=1)
+    #     ax.add_collection(poly)
 
 
-ax.minorticks_on()
-ax.tick_params(axis='both', which='both', direction='in', labelsize=13.5)
-# cbar = plt.colorbar(mapper)
-# cbar.ax.set_ylabel(r'$\left<[\tau]_{\Lambda}\right>$', fontsize=16)
-# cbar.ax.set_ylabel(r'fit to $\left<[\tau]_{\Lambda}\right>$', fontsize=16)
-# cbar.ax.set_ylabel(r'residual', fontsize=16)
-# ax.plot(dels, thes, c='seagreen', lw=2, marker='o')
-cm = plt.cm.get_cmap('RdYlBu')
+    # points = (dels, thes)
+    # x_g = np.arange(dc_l.min(), dc_l.max(), 1e-3)
+    # y_g = np.arange(dv_l.min(), dv_l.max(), 1e-3)
+    #
+    # grid_x, grid_y = np.meshgrid(x_g, y_g)
+    # tau = griddata(points, taus, (grid_x, grid_y))
+    #
+    # print(tau)
+    # def find_nearest(a, a0):
+    #     """Element in nd array 'a' closest to the scalar value 'a0'."""
+    #     idx = np.abs(a - a0).argmin()
+    #     return idx, a.flat[idx]
+    #
+    # ind_x, val_x = find_nearest(x_g, 0)
+    # ind_y, val_y = find_nearest(y_g, 0)
+    #
+    # print(ind_x, val_x)
+    # print(ind_y, val_y)
 
-ax.axvline(0, lw=0.5, c='k', ls='dashed')
-ax.axhline(0, lw=0.5, c='k', ls='dashed')
-# ax.scatter(dc_l, dv_l, c='b', s=10)
-from matplotlib import ticker
-# obj = ax.scatter(dc_l, dv_l, c=tau_l, s=20, cmap='rainbow', norm=colors.LogNorm(vmin=tau_l.min(), vmax=tau_l.max()))
-# taus_calc -= np.mean(taus_calc)
+    # print(tau[ind_x, ind_y])
 
-fit = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
-del_tau = tau_l-0.06 #fit - tau_l
-print(del_tau.min(), del_tau.max())
-obj = ax.scatter(dc_l, dv_l, c=del_tau, s=20, cmap='rainbow', rasterized=True)#, norm=colors.Normalize(vmin=del_tau.min(), vmax=del_tau.max()))
+    # ind_dc, val_dc = find_nearest(dels, 0)
+    # ind_dv, val_dv = find_nearest(thes, 0)
 
-# ax.scatter(dc_l[ind-10:ind+10], dv_l[ind-10:ind+10])#, c=tau_l, s=20, cmap='rainbow', norm=colors.LogNorm(vmin=tau_l.min(), vmax=tau_l.max()))
+    # print(taus[ind_dv])
+    # print(np.mean(taus))
+    # # print(dels, thes, taus)
 
-# j = 5
-# ind = np.argmin(tau_l**2)
-# ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
-# ax.scatter(dc_l[ind+j], dv_l[ind+j], c='k', s=20)
-
-cbar = fig.colorbar(obj, ax=ax)
-cbar.ax.set_ylabel(r'$[\tau]_{\Lambda}$', fontsize=18)
-# cbar.ax.set_ylabel(r'$\Delta[\tau]_{\Lambda}\; [\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=18)
-cbar.ax.tick_params(labelsize=12.5)
-
-tick_locator = ticker.MaxNLocator(nbins=10)
-cbar.locator = tick_locator
-cbar.update_ticks()
-
-# ind = np.argmin(dc_l**2 + dv_l**2)
-# npoints = 20
-# for gap in range(npoints):
-#     gap *= dc_l.size//npoints
-#     ax.scatter(dc_l[ind-gap], dv_l[ind-gap], c='k', s=20)
-#     # ax.scatter(dc_l[ind+gap], dv_l[ind+gap], c='k', s=20)
-# dc_0, dv_0 = dc_l[np.argmax(tau_l)-2000], dv_l[np.argmax(tau_l)-2000]#
-# ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
-
-# dtau = np.abs(tau_l-0.4)
-# ind = np.argmin(dtau)
-# ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
-
-delta = 0.01
-sub_dc = np.arange(dc_l.min(), dc_l.max(), delta)
-sub_dv = np.arange(dv_l.min(), dv_l.max(), delta)
-print('boo1')
-
-n_sub = np.minimum(sub_dc.size, sub_dv.size)
-print('boo')
-dc_subbed, dv_subbed = [], []
-for j in range(n_sub):
-    print(j)
-    dc_0, dv_0 = sub_dc[j], sub_dv[j]
-    ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
-    dc_subbed.append(dc_l[ind])
-    dv_subbed.append(dv_l[ind])
-
-ax.scatter(dc_subbed, dv_subbed, c='k', s=20)
-
-# ax.scatter(dc_0, dv_0, c='b', s=20)
-
-# for j in range(n_sub):
-#     dc_0, dv_0 = np.repeat(sub[j], 2)
-#     ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
-#     print(dc_l[ind], dv_l[ind])
-#     ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
+    # # ##plotting
+    ax.set_xlabel(r'$\delta_{l}$', fontsize=18)
+    ax.set_ylabel(r'$\theta_{l}$', fontsize=18)
+    ax.set_title(r'$a = {}, \Lambda = {}\;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(np.round(a, 3), int(Lambda/(2*np.pi)), kind_txt), fontsize=16)
+    # ax.set_title(r'$a = {}, \Lambda = {}\;[2\pi h\;\mathrm{{Mpc}}^{{-1}}]$ ({})'.format(int(Lambda/(2*np.pi)), kind_txt), fontsize=16)
+    # minima = min(taus)
+    # maxima = max(taus)
+    # norm = colors.Normalize(vmin=minima, vmax=maxima, clip=True)
+    # mapper = cm.ScalarMappable(norm=norm, cmap='viridis')
+    # for j in range(len(dels)):
+    #     # ax.axvline(dc_bins[j], c='k', lw=0.5)
+    #     ax.axvline(co_x1[j], c='k', lw=0.5)
+    #     ax.axvline(co_x2[j], c='k', lw=0.5)
+    #
+    #     # map = taus
+    #     # color = mapper.to_rgba(map)
+    #     ax.axhline(co_y1[j], c='k', lw=0.5)
+    #     ax.axhline(co_y2[j], c='k', lw=0.5)
+    #
+    #     # for l in range(len(dels)):
+    #     #     verts = [[co_x1[j], co_y2[l]], [co_x1[j], co_y1[l]], [co_x2[j], co_y1[l]], [co_x2[j], co_y2[l]]]
+    #     #     poly = PolyCollection([verts], facecolors = color, edgecolors='k', linewidth=1)
+    #     #     ax.add_collection(poly)
 
 
-# plt.savefig('../plots/test/new_paper_plots/tau_diff.png', bbox_inches='tight', dpi=150)
-# plt.savefig('../plots/test/new_paper_plots/tau_diff_pre_sc_gauss.pdf', bbox_inches='tight', dpi=300)
-# plt.savefig('../plots/test/new_paper_plots/tau_diff_post_sc_gauss.pdf', bbox_inches='tight', dpi=300)
-#
-#
-# plt.close()
-plt.show()
+    ax.minorticks_on()
+    ax.tick_params(axis='both', which='both', direction='in', labelsize=13.5)
+    # cbar = plt.colorbar(mapper)
+    # cbar.ax.set_ylabel(r'$\left<[\tau]_{\Lambda}\right>$', fontsize=16)
+    # cbar.ax.set_ylabel(r'fit to $\left<[\tau]_{\Lambda}\right>$', fontsize=16)
+    # cbar.ax.set_ylabel(r'residual', fontsize=16)
+    # ax.plot(dels, thes, c='seagreen', lw=2, marker='o')
+    cm = plt.cm.get_cmap('RdYlBu')
+
+    ax.axvline(0, lw=0.5, c='k', ls='dashed')
+    ax.axhline(0, lw=0.5, c='k', ls='dashed')
+    # ax.scatter(dc_l, dv_l, c='b', s=10)
+    from matplotlib import ticker
+    # obj = ax.scatter(dc_l, dv_l, c=tau_l, s=20, cmap='rainbow', norm=colors.LogNorm(vmin=tau_l.min(), vmax=tau_l.max()))
+    # taus_calc -= np.mean(taus_calc)
+
+    fit = C_[0] + C_[1]*dc_l + C_[2]*dc_l**2
+    del_tau = tau_l #fit - tau_l
+    # print(del_tau.min(), del_tau.max())
+    obj = ax.scatter(dc_l, dv_l, c=del_tau, s=20, cmap='rainbow', rasterized=True)#, norm=colors.Normalize(vmin=del_tau.min(), vmax=del_tau.max()))
+
+    # ax.scatter(dc_l[ind-10:ind+10], dv_l[ind-10:ind+10])#, c=tau_l, s=20, cmap='rainbow', norm=colors.LogNorm(vmin=tau_l.min(), vmax=tau_l.max()))
+
+    # j = 5
+    # ind = np.argmin(tau_l**2)
+    # ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
+    # ax.scatter(dc_l[ind+j], dv_l[ind+j], c='k', s=20)
+
+    cbar = fig.colorbar(obj, ax=ax)
+    cbar.ax.set_ylabel(r'$[\tau]_{\Lambda}$', fontsize=18)
+    # cbar.ax.set_ylabel(r'$\Delta[\tau]_{\Lambda}\; [\mathrm{M}_{10}h^{2}\frac{\mathrm{km}^{2}}{\mathrm{Mpc}^{3}s^{2}}]$', fontsize=18)
+    cbar.ax.tick_params(labelsize=12.5)
+
+    tick_locator = ticker.MaxNLocator(nbins=10)
+    cbar.locator = tick_locator
+    cbar.update_ticks()
+
+    # ind = np.argmin(dc_l**2 + dv_l**2)
+    # npoints = 20
+    # for gap in range(npoints):
+    #     gap *= dc_l.size//npoints
+    #     ax.scatter(dc_l[ind-gap], dv_l[ind-gap], c='k', s=20)
+    #     # ax.scatter(dc_l[ind+gap], dv_l[ind+gap], c='k', s=20)
+    # dc_0, dv_0 = dc_l[np.argmax(tau_l)-2000], dv_l[np.argmax(tau_l)-2000]#
+    # ind = np.argmin((dc_l-dc_0)**2 + (dv_l-dv_0)**2)
+
+    # dtau = np.abs(tau_l-0.4)
+    # ind = np.argmin(dtau)
+    # ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
+
+    # delta = 0.01
+    # sub_dc = np.arange(dc_l.min(), dc_l.max(), delta)
+    # sub_dv = np.arange(dv_l.min(), dv_l.max(), delta)
+    # print('boo1')
+    #
+    # n_sub = np.minimum(sub_dc.size, sub_dv.size)
+    # print('boo')
+    # dc_subbed, dv_subbed = [], []
+    # for j in range(n_sub):
+    #     print(j)
+    #     dc_0, dv_0 = sub_dc[j], sub_dv[j]
+    #     ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
+    #     dc_subbed.append(dc_l[ind])
+    #     dv_subbed.append(dv_l[ind])
+
+    # ax.scatter(dc_subbed, dv_subbed, c='k', s=20)
+
+    sub = np.array([19848, 19939, 20031, 20123, 20215, 20307, 20399, 20491, 20583,
+       20675, 20767, 20859, 20951, 21043, 21135, 21227, 21319, 21411,
+       21503, 21595, 21687, 21779, 21871, 21962, 22054, 22146, 22238,
+       22330, 22422, 22514, 22606, 22698, 22790, 22882, 22974, 23066,
+       23158, 23250, 23342, 23434, 23526, 23618, 23710, 23802, 23894,
+       23986, 24077, 24169, 24261, 24353, 24445, 24537, 24629, 24721,
+       24813, 24905, 24997, 25089, 25181, 25273, 25365, 25457, 25549,
+       25641, 25733, 25825, 25917, 26009, 26100, 26192, 26284, 26376,
+       26468, 26560, 26652, 26744, 26836, 26928, 27020, 27112, 27204,
+       27296, 27388, 27480, 27572, 27664, 27756, 27848, 27940, 28032,
+       28124, 28215, 28307, 28399, 28491, 28583, 28675, 28767, 28859,
+       28951, 29043, 29135, 29227, 29319, 29411, 29503, 29595, 29687,
+       29779, 29871, 29963, 30055, 30147, 30238, 30330, 30422, 30514,
+       30606, 30698, 30790, 30882, 30974, 31066, 31158, 31250, 31342,
+       31434, 31526, 31618, 31710, 31802, 31894, 31986, 32078, 32170,
+       32262, 32353, 32445, 32537, 32629, 32721, 32813, 32905, 32997,
+       33089, 33181, 33273, 33365, 33457, 33549, 33641, 33733, 33825,
+       33917, 34009, 34101, 34193, 34285, 34376, 34468, 34560, 34652,
+       34744, 34836, 34928, 35020, 35112, 35204, 35296, 35388, 35480,
+       35572, 35664, 35756, 35848, 35940, 36032, 36124, 36216, 36308,
+       36400, 36491, 36583, 36675, 36767, 36859, 36951, 37043, 37135,
+       37227, 37319, 37411, 37503, 37595, 37687, 37779, 37871, 37963,
+       38055, 38147, 38239, 38331, 38423, 38514, 38606, 38698, 38790,
+       38882, 38974, 39066, 39158, 39250, 39342, 39434, 39526, 39618,
+       39710, 39802, 39894, 39986, 40078, 40170, 40262, 40354, 40446,
+       40538, 40629, 40721, 40813, 40905, 40997, 41089, 41181, 41273,
+       41365, 41457, 41549, 41641, 41733, 41825, 41917, 42009, 42101,
+       42193, 42285, 42377, 42469, 42561, 42653])
+    ax.scatter(dc_l[sub], dv_l[sub])
+
+    # dc_0, dv_0 = dc_l[44887], dv_l[44887]
+    # ax.scatter(dc_0, dv_0, c='b', s=20)
+
+    # for j in range(n_sub):
+    #     dc_0, dv_0 = np.repeat(sub[j], 2)
+    #     ind = np.argmin((dc_l - dc_0)**2 + (dv_l - dv_0)**2)
+    #     print(dc_l[ind], dv_l[ind])
+    #     ax.scatter(dc_l[ind], dv_l[ind], c='k', s=20)
+
+
+    # plt.savefig('../plots/test/new_paper_plots/tau_diff.png', bbox_inches='tight', dpi=150)
+    # plt.savefig('../plots/test/new_paper_plots/tau_diff_pre_sc_gauss.pdf', bbox_inches='tight', dpi=300)
+    # plt.savefig('../plots/test/new_paper_plots/tau_diff_post_sc_gauss.pdf', bbox_inches='tight', dpi=300)
+    #
+    #
+
+    # plt.savefig('../plots/test/new_paper_plots/dc_dv_plane/col_tau_{}.png'.format(file_num), bbox_inches='tight', dpi=150)
+    # plt.close()
+    plt.show()
 
 # ax.set_xlabel(r'$\delta_{l}$', fontsize=18)
 # ax.set_ylabel(r'$\theta_{l}$', fontsize=18)

@@ -7,10 +7,10 @@ from functions import write_sim_data
 import os
 os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
-path = 'cosmo_sim_1d/another_sim_k_1_11/run1/'
+path = 'cosmo_sim_1d/sim_k_1_11/run1/'
 A = [-0.05, 1, -0.5, 11]
 
-n_runs = 24
+n_runs = 1
 mode = 1
 kinds = ['sharp', 'gaussian']
 kind_txts = ['sharp cutoff', 'Gaussian smoothing']
@@ -18,12 +18,13 @@ kind_txts = ['sharp cutoff', 'Gaussian smoothing']
 
 tmp_st = time.time()
 # n = 5
-zero, Nfiles = 0, 25
+zero, Nfiles = 23, 24
 def write(j, Lambda, path, A, kind, mode, run, folder_name=''):
     path = path[:-2] + '{}/'.format(run)
+    # print(path)
     write_sim_data(j, Lambda, path, A, kind, mode, folder_name)
 
-for which in range(0, 2):
+for which in range(1, 2):
     kind = kinds[which]
     kind_txt = kind_txts[which]
     for Lambda in range(2,7):

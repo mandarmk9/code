@@ -1370,3 +1370,159 @@ sep, P_ad = correlation(A_l, dc_l, x)
 #
 #     ctot2_3 = np.real(cs2_3 + cv2_3)
 #     return a, x, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, tau_l, fit, terr, P_nb, P_1l, d1k
+
+
+###from ctot2_plots.py on Dec 8, 13:12
+# def param_calc_ens(j, Lambda, path, A, mode, kind, n_runs, n_use, fitting_method='curve_fit', nbins_x=10, nbins_y=10, npars=3, data_cov=False):
+#     a, x, d1k, dc_l, dv_l, tau_l, P_nb, P_1l = read_sim_data(path, Lambda, kind, j, '')
+#
+#     if fitting_method == 'curve_fit':
+#         rho_0 = 27.755
+#         rho_b = rho_0 / a**3
+#         H0 = 100
+#
+#         n_ev = x.size // 20
+#         dc_l_sp = dc_l[0::n_ev]
+#         dv_l_sp = dv_l[0::n_ev]
+#         tau_l_sp = tau_l[0::n_ev]
+#         # yerr_sp = yerr[0::n_ev]
+#         x_sp = x[0::n_ev]
+#
+#         if npars == 3:
+#             def fitting_function(X, a0, a1, a2):
+#                 x1, x2 = X
+#                 return a0 + a1*x1 + a2*x2
+#
+#             guesses = 1, 1, 1 #, 1, 1, 1
+#             C, cov = curve_fit(fitting_function, (dc_l_sp, dv_l_sp), tau_l_sp, guesses, sigma=None, method='lm', absolute_sigma=True)
+#
+#             fit = fitting_function((dc_l, dv_l), C[0], C[1], C[2])#, C[3], C[4], C[5])
+#             fit_sp = fit[0::n_ev]
+#
+#         elif npars == 6:
+#             def fitting_function(X, a0, a1, a2, a3, a4, a5):
+#                 x1, x2 = X
+#                 return a0 + a1*x1 + a2*x2 + a3*x1**2 + a4*x2**2 + a5*x1*x2
+#
+#             guesses = 1, 1, 1, 1, 1, 1
+#             C, cov = curve_fit(fitting_function, (dc_l_sp, dv_l_sp), tau_l_sp, guesses, sigma=None, method='lm', absolute_sigma=True)
+#             fit = fitting_function((dc_l, dv_l), C[0], C[1], C[2], C[3], C[4], C[5])
+#             fit_sp = fit[0::n_ev]
+#
+#
+#         resid = fit_sp - tau_l_sp
+#         chisq = 1#sum((resid / yerr_sp)**2)
+#         red_chi = 1#chisq / (n_use - 3)
+#
+#         cs2 = np.real(C[1] / rho_b)
+#         cv2 = -np.real(C[2] * H0 / (rho_b * np.sqrt(a)))
+#         ctot2 = (cs2 + cv2)
+#
+#         err0, err1, err2 = 0, 0, 0#np.sqrt(np.diag(cov))
+#         yerr = 0
+#         taus = []
+#         ctot2 = (cs2 + cv2)
+#         terr = 0
+#
+#         x_binned = None
+#
+#     else:
+#         a, x, tau_l, dc_l, dv_l, taus, dels, thes, delsq, thesq, delthe, yerr, aic, bic, fit_sp, fit, cov, C, x_binned = binning(j, path, Lambda, kind, nbins_x, nbins_y, npars)
+#
+#         resid = fit_sp - taus
+#         chisq = sum((resid / yerr)**2)
+#         red_chi = chisq / (len(dels) - npars)
+#
+#         C0, C1, C2 = C[:3]
+#         cs2 = np.real(C1 / rho_b)
+#         cv2 = -np.real(C2 * H0 / (rho_b * np.sqrt(a)))
+#         ctot2 = (cs2 + cv2)
+#
+#         f1 = (1 / rho_b)
+#         f2 = (-H0 / (rho_b * np.sqrt(a)))
+#
+#         cov[0,1] *= f1
+#         cov[1,0] *= f1
+#         cov[0,2] *= f2
+#         cov[2,0] *= f2
+#         cov[1,1] *= f1**2
+#         cov[2,2] *= f2**2
+#         cov[2,1] *= f2*f1
+#         cov[1,2] *= f1*f2
+#
+#         corr = np.zeros(cov.shape)
+#         err0, err1, err2 = np.sqrt(np.diag(cov[:3,:3]))
+#         corr[1,2] = cov[1,2] / np.sqrt(cov[1,1]*cov[2,2])
+#         corr[2,1] = cov[2,1] / np.sqrt(cov[1,1]*cov[2,2])
+#
+#         ctot2 = (cs2 + cv2)
+#         terr = np.sqrt(err1**2 + err2**2 + corr[1,2]*err1*err2 + corr[2,1]*err2*err1)
+#
+#     # M&W Estimator
+#     Lambda_int = int(Lambda / (2*np.pi))
+#     tau_l_k = np.fft.fft(tau_l) / x.size
+#     num = (np.conj(a * d1k) * ((np.fft.fft(tau_l)) / x.size))
+#     denom = ((d1k * np.conj(d1k)) * (a**2))
+#     ntrunc = int(num.size-Lambda_int)
+#     num[Lambda_int+1:ntrunc] = 0
+#     denom[Lambda_int+1:ntrunc] = 0
+#
+#     ctot2_2 = np.real(sum(num) / sum(denom)) / rho_b
+#
+#     # Baumann estimator
+#     T = -dv_l / (H0 / (a**(1/2)))
+#
+#     def Power_fou(f1, f2):
+#         f1_k = np.fft.fft(f1)
+#         f2_k = np.fft.fft(f2)
+#         corr = (f1_k * np.conj(f2_k) + np.conj(f1_k) * f2_k) / 2
+#         return corr[1]
+#
+#     ctot2_3 = np.real(Power_fou(tau_l/rho_b, dc_l) / Power_fou(dc_l, T))
+#
+#     # def Power(f1, f2):
+#     #     f1_k = np.fft.fft(f1)
+#     #     f2_k = np.fft.fft(f2)
+#     #
+#     #     corr = (f1_k * np.conj(f2_k) + np.conj(f1_k) * f2_k) / 2
+#     #     return np.real(np.fft.ifft(corr))
+#     #
+#     # A = spectral_calc(tau_l, 1, o=2, d=0) / rho_b / (a**2)
+#     # T = -dv_l / (H0 / (a**(1/2)))
+#     # P_AT = Power(A, T)
+#     # P_dT = Power(dc_l, T)
+#     # P_Ad = Power(A, dc_l)
+#     # P_TT = Power(T, T)
+#     # P_dd = Power(dc_l, dc_l)
+#     #
+#     # num_cs2 = (P_AT * spectral_calc(P_dT, 1, o=2, d=0)) - (P_Ad * spectral_calc(P_TT, 1, o=2, d=0))
+#     # den_cs2 = ((spectral_calc(P_dT, 1, o=2, d=0))**2 / (a**2)) - (spectral_calc(P_dd, 1, o=2, d=0) * spectral_calc(P_TT, 1, o=2, d=0) / a**2)
+#     #
+#     # num_cv2 = (P_Ad * spectral_calc(P_dT, 1, o=2, d=0)) - (P_AT * spectral_calc(P_dd, 1, o=2, d=0))
+#     # cs2_3 = num_cs2 / den_cs2
+#     # cv2_3 = num_cv2 / den_cs2
+#     # ctot2_3 = np.median(np.real(cs2_3 + cv2_3))
+#
+#     # def Power(f1_k, f2_k, Lambda_int):
+#     #   corr = (f1_k * np.conj(f2_k) + np.conj(f1_k) * f2_k) / 2
+#     #   ntrunc = corr.size - Lambda_int
+#     #   corr[Lambda_int+1:ntrunc] = 0
+#     #   return corr
+#     #
+#     # A = np.fft.fft(tau_l) / rho_b / tau_l.size
+#     # T = np.fft.fft(dv_l) / (H0 / (a**(1/2))) / dv_l.size
+#     #
+#     # Ad = Power(A, dc_l, Lambda_int)[mode]
+#     # AT = Power(A, T, Lambda_int)[mode]
+#     # P_dd = Power(dc_l, dc_l, Lambda_int)[mode]
+#     # P_TT = Power(T, T, Lambda_int)[mode]
+#     # P_dT = Power(dc_l, T, Lambda_int)[mode]
+#     #
+#     # cs2_3 = ((P_TT * Ad) - (P_dT * AT)) / (P_dd * P_TT - (P_dT)**2)
+#     # cv2_3 = ((P_dT * Ad) - (P_dd * AT)) / (P_dd * P_TT - (P_dT)**2)
+#     #
+#     # ctot2_3 = np.real(cs2_3 + cv2_3)
+#     sol_deriv = deriv_param_calc(dc_l, dv_l, tau_l)
+#     ctot2_4 = sol_deriv[0][1] / rho_b
+#     err_4 = sol_deriv[1][1] / rho_b
+#     return a, x, ctot2, ctot2_2, ctot2_3, err0, err1, err2, cs2, cv2, red_chi, yerr, tau_l, fit, terr, P_nb, P_1l, d1k, taus, x_binned, chisq, ctot2_4, err_4

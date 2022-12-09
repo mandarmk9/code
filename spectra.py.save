@@ -63,7 +63,7 @@ A = [-0.05, 1, -0.5, 11]
 
 Nfiles = 51
 mode = 2
-sm = True
+sm = False
 Lambda = 3 * (2 * np.pi)
 kind = 'sharp'
 kind_txt = 'sharp cutoff'
@@ -139,7 +139,7 @@ print((P_nb - P_1l) * 100 / P_nb)
 # #for plotting the spectra
 xaxis = a_list
 # yaxes = [P_nb * 1e4 / a_list**2, P_1l * 1e4 / a_list**2]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_zel**2]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_list**2]# / a_list**2]
-yaxes = [P_nb * 1e4, P_1l * 1e4]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_zel**2]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_list**2]# / a_list**2]
+yaxes = [P_nb, P_1l * 1e4]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_zel**2]#, P_2l * 1e4 / a_list**2]#, P_zel * 1e4 / a_list**2]# / a_list**2]
 
 colours = ['b', 'brown', 'r', 'k', 'magenta']#, 'k']
 
@@ -151,7 +151,6 @@ a_sc = 0#1 / np.max(initial_density(x, A, 1))
 # plots_folder = 'test'#/paper_plots' #'phase_full_run3' #_k7_L3'
 plots_folder = 'test/new_paper_plots/'#/paper_plots' #'phase_full_run3' #_k7_L3'
 save = True
-
 if sm == True:
     labels = [r'$N-$body', 'tSPT-4', 'tSPT-6']#'SPT: 2-loop',]
     savename = 'spt_spec_{}'.format(kind)
